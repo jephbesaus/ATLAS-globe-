@@ -1,0 +1,45 @@
+name: Construire l'APK Atlas Globe
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Compiler
+        run: |
+          set -o pipefail
+          gradle assembleDebug --no-daemon --stacktrace 2>&1 | tee build.log
+
+      - name: Résumé des erreurs (visible dans l'onglet Summary)
+        if: failure()
+        run: |
+          echo '## Erreurs de compilation' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          grep -E '^e: |error:|What went wrong' -A2 build.log | head -150 >> "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: journal-compilation
+          path: build.log
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AtlasGlobe-APK
+          path: app/build/outputs/apk/debug/*.apk

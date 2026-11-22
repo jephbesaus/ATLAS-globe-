@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Atlas Globe · Admin</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<div id="login" class="center hidden">
+  <svg viewBox="0 0 100 100" class="globe"><circle cx="50" cy="50" r="46" fill="none" stroke="#fff" stroke-width="2"/><ellipse cx="50" cy="50" rx="20" ry="46" fill="none" stroke="#fff"/><ellipse cx="50" cy="50" rx="38" ry="46" fill="none" stroke="#fff"/><line x1="4" y1="50" x2="96" y2="50" stroke="#fff"/><path d="M10 28H90M10 72H90" stroke="#fff" fill="none"/></svg>
+  <h1>Atlas Globe</h1><p class="mute">Espace administrateur</p>
+  <form id="f1"><input id="email" type="email" placeholder="Adresse e-mail" autocomplete="username" required><input id="pw" type="password" placeholder="Mot de passe" autocomplete="current-password" required><button class="btn">Continuer</button></form>
+  <form id="f2" class="hidden"><p class="mute">Un code à 6 chiffres vous a été envoyé par e-mail.</p><input id="otp" inputmode="numeric" maxlength="6" placeholder="Code à 6 chiffres" required><button class="btn">Se connecter</button></form>
+  <p id="lerr" class="err"></p>
+</div>
+<div id="app" class="hidden">
+  <nav id="nav"></nav>
+  <main><header><h2 id="title"></h2><div><span id="who" class="mute"></span> <button class="link" id="out">Déconnexion</button></div></header><section id="view"></section></main>
+</div>
+<div id="modal" class="hidden"><div class="box" id="box"></div></div>
+<script src="app.js"></script><script src="ac.js"></script></body></html>
