@@ -5,6 +5,7 @@ import com.atlasglobe.app.ui.components.Text
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -60,7 +61,7 @@ fun PostCard(post: Post, myId: String, following: Boolean, onOpenImage: () -> Un
             Box {
                 Icon(Icons.Filled.MoreVert, "Options", tint = Color.White,
                     modifier = Modifier.padding(start = 6.dp).size(26.dp).clickable { menu = true })
-                DropdownMenu(menu, { menu = false }, containerColor = Atlas.Card) {
+                DropdownMenu(menu, { menu = false }, modifier = Modifier.background(Atlas.Card)) {
                     if (own) {
                         DropdownMenuItem(text = { Text("Supprimer", color = Atlas.Alert) },
                             onClick = { menu = false; confirmDelete = true })

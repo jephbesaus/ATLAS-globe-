@@ -250,7 +250,7 @@ private fun BatteryPage() {
         Item("Batterie du téléphone", "${MeshPolicy.batteryPct} %" + if (MeshPolicy.charging) " · en charge" else "") {}
         Item("Température", "%.0f °C".format(MeshPolicy.tempC)) {}
         Item("Mode du mesh", "${MeshPolicy.effective.label} : réglé automatiquement selon la batterie, la chaleur et la nuit") {}
-        Item("Consommation par application", "Voir la part d'Atlas dans Android") { ctx.startActivity(Intent(Settings.ACTION_POWER_USAGE_SUMMARY).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+        Item("Consommation par application", "Voir la part d'Atlas dans Android") { ctx.startActivity(Intent(Intent.ACTION_POWER_USAGE_SUMMARY).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
         Item("Garder Atlas actif en arrière-plan", if (Perms.batteryOk(ctx)) "Autorisé" else "Touchez pour autoriser") { if (!Perms.batteryOk(ctx)) Perms.batteryRequest(ctx) }
         Text("Sous 20 % le mesh passe en mode Économie ; sous 15 % Atlas arrête de relayer les messages des autres.", color = Atlas.Grey, fontSize = 12.sp, modifier = Modifier.padding(20.dp))
     }

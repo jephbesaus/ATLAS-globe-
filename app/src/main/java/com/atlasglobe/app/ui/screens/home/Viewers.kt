@@ -79,8 +79,8 @@ fun StoryViewer(authorId: String, myId: String, onClose: () -> Unit) {
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 list.indices.forEach { i ->
                     val v = when { i < index -> 1f; i == index -> progress.value; else -> 0f }
-                    LinearProgressIndicator(progress = { v }, modifier = Modifier.weight(1f).height(2.dp),
-                        color = Color.White, trackColor = Atlas.Line, gapSize = 0.dp, drawStopIndicator = {})
+                    LinearProgressIndicator(progress = v, modifier = Modifier.weight(1f).height(2.dp),
+                        color = Color.White, trackColor = Atlas.Line)
                 }
             }
             Spacer(Modifier.height(10.dp))

@@ -124,7 +124,7 @@ fun ChatScreen(conv: String, onGroupInfo: () -> Unit) {
                 else callPerm.launch(Manifest.permission.RECORD_AUDIO) })
             Box {
                 Icon(Icons.Filled.MoreVert, "Options", tint = Color.White, modifier = Modifier.padding(start = 14.dp).size(26.dp).clickable { topMenu = true })
-                DropdownMenu(topMenu, { topMenu = false }, containerColor = Atlas.Card) {
+                DropdownMenu(topMenu, { topMenu = false }, modifier = Modifier.background(Atlas.Card)) {
                     if (isGroup) DropdownMenuItem(text = { Text("Infos du groupe", color = Color.White) }, onClick = { topMenu = false; onGroupInfo() })
                     else {
                         DropdownMenuItem(text = { Text("Profil", color = Color.White) }, onClick = { topMenu = false; showProfile = true })

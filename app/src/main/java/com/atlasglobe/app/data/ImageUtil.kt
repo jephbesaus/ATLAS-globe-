@@ -12,20 +12,22 @@ import java.io.File
 
 object ImageUtil {
     /** Copie une image choisie en JPEG réduit dans le stockage interne : léger (important pour le mesh). */
-    fun saveScaled(ctx: Context, uri: Uri, maxDim: Int, dest: File, quality: Int = 82): String? = try {
-        val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        ctx.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, opts) }
-        var sample = 1
-        while (opts.outWidth / sample > maxDim * 2 || opts.outHeight / sample > maxDim * 2) sample *= 2
-        val bmp = ctx.contentResolver.openInputStream(uri)?.use {
-            BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply { inSampleSize = sample })
-        } ?: return null
-        val scale = maxDim.toFloat() / maxOf(bmp.width, bmp.height)
-        val out = if (scale < 1f) Bitmap.createScaledBitmap(bmp, (bmp.width * scale).toInt(), (bmp.height * scale).toInt(), true) else bmp
-        dest.parentFile?.mkdirs()
-        dest.outputStream().use { out.compress(Bitmap.CompressFormat.JPEG, quality, it) }
-        dest.absolutePath
-    } catch (e: Exception) { null }
+    fun saveScaled(ctx: Context, uri: Uri, maxDim: Int, dest: File, quality: Int = 82): String? {
+        return try {
+            val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            ctx.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, opts) }
+            var sample = 1
+            while (opts.outWidth / sample > maxDim * 2 || opts.outHeight / sample > maxDim * 2) sample *= 2
+            val bmp = ctx.contentResolver.openInputStream(uri)?.use {
+                BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply { inSampleSize = sample })
+            } ?: return null
+            val scale = maxDim.toFloat() / maxOf(bmp.width, bmp.height)
+            val out = if (scale < 1f) Bitmap.createScaledBitmap(bmp, (bmp.width * scale).toInt(), (bmp.height * scale).toInt(), true) else bmp
+            dest.parentFile?.mkdirs()
+            dest.outputStream().use { out.compress(Bitmap.CompressFormat.JPEG, quality, it) }
+            dest.absolutePath
+        } catch (e: Exception) { null }
+    }
 
     fun saveProfilePhoto(ctx: Context, uri: Uri): String? =
         saveScaled(ctx, uri, 512, File(ctx.filesDir, "profile.jpg"), 85)
