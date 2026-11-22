@@ -24,14 +24,14 @@ object SettingsStore {
         readReceipts = p.getBoolean("read", true); allowCalls = p.getBoolean("calls", true)
         chatBg = p.getString("chat_bg", "black") ?: "black"; certLevel = p.getInt("cert", 0); certNote = p.getString("cert_note", "") ?: ""
     }
-    fun setPresence(v: Boolean) { presence = v; p.edit().putBoolean("presence", v).apply() }
-    fun setShowPhone(v: Boolean) { showPhone = v; p.edit().putBoolean("show_phone", v).apply() }
-    fun setShowEmail(v: Boolean) { showEmail = v; p.edit().putBoolean("show_email", v).apply() }
-    fun setReadReceipts(v: Boolean) { readReceipts = v; p.edit().putBoolean("read", v).apply() }
-    fun setAllowCalls(v: Boolean) { allowCalls = v; p.edit().putBoolean("calls", v).apply() }
-    fun setChatBg(v: String) { chatBg = v; p.edit().putString("chat_bg", v).apply() }
+    fun changePresence(v: Boolean) { presence = v; p.edit().putBoolean("presence", v).apply() }
+    fun changeShowPhone(v: Boolean) { showPhone = v; p.edit().putBoolean("show_phone", v).apply() }
+    fun changeShowEmail(v: Boolean) { showEmail = v; p.edit().putBoolean("show_email", v).apply() }
+    fun changeReadReceipts(v: Boolean) { readReceipts = v; p.edit().putBoolean("read", v).apply() }
+    fun changeAllowCalls(v: Boolean) { allowCalls = v; p.edit().putBoolean("calls", v).apply() }
+    fun changeChatBg(v: String) { chatBg = v; p.edit().putString("chat_bg", v).apply() }
     /** Reçu d'Atlas Assistant après paiement et vérification. */
-    fun setCertNote(v: String) { certNote = v; p.edit().putString("cert_note", v).apply() }
+    fun changeCertNote(v: String) { certNote = v; p.edit().putString("cert_note", v).apply() }
     fun setCert(level: Int) { certLevel = level; p.edit().putInt("cert", level).apply() }
 }
 

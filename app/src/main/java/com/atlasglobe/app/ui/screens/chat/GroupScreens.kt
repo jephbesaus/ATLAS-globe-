@@ -104,7 +104,7 @@ fun GroupInfoScreen(gid: String, onLeft: () -> Unit) {
                 Column(Modifier.weight(1f)) {
                     Text("Conversation verrouillée", color = Color.White, fontSize = 16.sp)
                     Text("Seuls les administrateurs peuvent écrire", color = Atlas.Grey, fontSize = 12.sp) }
-                Switch(g.locked, { if (admin) ChatRepo.setLocked(gid, it) }, enabled = admin,
+                Switch(g.locked, { if (admin) ChatRepo.changeLocked(gid, it) }, enabled = admin,
                     colors = SwitchDefaults.colors(checkedThumbColor = Color.Black, checkedTrackColor = Color.White, uncheckedThumbColor = Atlas.Grey, uncheckedTrackColor = Atlas.Card, uncheckedBorderColor = Atlas.Grey))
             }
             HorizontalDivider(color = Atlas.Line)

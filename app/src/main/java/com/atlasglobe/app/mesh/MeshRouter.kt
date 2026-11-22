@@ -97,7 +97,7 @@ object MeshRouter {
         val me = me()
         when (p.type) {
             "ack" -> if (p.dst == me) {
-                runCatching { ChatRepo.setStatus(String(unb64(p.body)), "delivered") }; MeshStore.consume(p.id) }
+                runCatching { ChatRepo.changeStatus(String(unb64(p.body)), "delivered") }; MeshStore.consume(p.id) }
             "msg" -> when {
                 p.src == me -> {}
                 p.dst == me -> readDirect(p)
@@ -153,14 +153,14 @@ object MeshRouter {
                 com.atlasglobe.app.notify.NotificationHelper.connectivity(app, "Revendeur Wi-Fi Atlas",
                     if (ok) "Votre compte Revendeur Wi-Fi est approuvé. Ouvrez Paramètres." else "Votre accès Revendeur Wi-Fi a été retiré.") }
             "cert" -> if (p.src == com.atlasglobe.app.connect.AtlasConfig.ASSISTANT_ID) {
-                com.atlasglobe.app.settings.SettingsStore.init(app); com.atlasglobe.app.settings.SettingsStore.setCert(o.optInt("level", 0)); com.atlasglobe.app.settings.SettingsStore.setCertNote("")
+                com.atlasglobe.app.settings.SettingsStore.init(app); com.atlasglobe.app.settings.SettingsStore.setCert(o.optInt("level", 0)); com.atlasglobe.app.settings.SettingsStore.changeCertNote("")
                 com.atlasglobe.app.notify.NotificationHelper.post(app, "Compte certifié", "Votre certification est active.") }
             "announce" -> if (p.src == com.atlasglobe.app.connect.AtlasConfig.ASSISTANT_ID)
                 com.atlasglobe.app.notify.NotificationHelper.announcement(app, Announcement(o.optString("id", UUID.randomUUID().toString()),
                     o.optString("title"), o.optString("body"), o.optString("whatsapp"), o.optString("telegram"), o.optString("support")))
             "blocked" -> if (p.src == com.atlasglobe.app.connect.AtlasConfig.ASSISTANT_ID) AccountState.set(app, o.optBoolean("on"), o.optString("reason"))
             "cert_rejected" -> if (p.src == com.atlasglobe.app.connect.AtlasConfig.ASSISTANT_ID) {
-                com.atlasglobe.app.settings.SettingsStore.init(app); com.atlasglobe.app.settings.SettingsStore.setCertNote("rejected:" + o.optString("reason"))
+                com.atlasglobe.app.settings.SettingsStore.init(app); com.atlasglobe.app.settings.SettingsStore.changeCertNote("rejected:" + o.optString("reason"))
                 com.atlasglobe.app.notify.NotificationHelper.post(app, "Certification refusée", o.optString("reason")) }
             "join" -> com.atlasglobe.app.reseller.ResellerServer.onJoin(p.src, o)
             "wifi" -> com.atlasglobe.app.connect.ConnectionManager.onWifi(p.src, o)

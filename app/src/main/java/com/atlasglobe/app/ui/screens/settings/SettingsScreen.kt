@@ -185,11 +185,11 @@ private fun ProfilePage(store: ProfileStore) {
 @Composable
 private fun PrivacyPage() = Body {
     Title("Confidentialité")
-    Toggle("Présence en ligne", "Les autres voient quand vous êtes actif", SettingsStore.presence) { SettingsStore.setPresence(it) }
-    Toggle("Afficher mon numéro", "Visible sur votre profil", SettingsStore.showPhone) { SettingsStore.setShowPhone(it) }
-    Toggle("Afficher mon e-mail", "Sinon seul votre nom apparaît", SettingsStore.showEmail) { SettingsStore.setShowEmail(it) }
-    Toggle("Confirmations de lecture", "Désactivées : vous ne voyez pas non plus celles des autres", SettingsStore.readReceipts) { SettingsStore.setReadReceipts(it) }
-    Toggle("Autoriser les appels", "Désactivé : personne ne peut vous appeler", SettingsStore.allowCalls) { SettingsStore.setAllowCalls(it) }
+    Toggle("Présence en ligne", "Les autres voient quand vous êtes actif", SettingsStore.presence) { SettingsStore.changePresence(it) }
+    Toggle("Afficher mon numéro", "Visible sur votre profil", SettingsStore.showPhone) { SettingsStore.changeShowPhone(it) }
+    Toggle("Afficher mon e-mail", "Sinon seul votre nom apparaît", SettingsStore.showEmail) { SettingsStore.changeShowEmail(it) }
+    Toggle("Confirmations de lecture", "Désactivées : vous ne voyez pas non plus celles des autres", SettingsStore.readReceipts) { SettingsStore.changeReadReceipts(it) }
+    Toggle("Autoriser les appels", "Désactivé : personne ne peut vous appeler", SettingsStore.allowCalls) { SettingsStore.changeAllowCalls(it) }
 }
 
 // ---------------- Notifications : un son par catégorie ----------------
@@ -260,13 +260,13 @@ private fun BatteryPage() {
 private fun ChatsPage() {
     val ctx = LocalContext.current; val scope = rememberCoroutineScope()
     val pick = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { u ->
-        if (u != null) scope.launch { withContext(Dispatchers.IO) { ImageUtil.saveScaled(ctx, u, 1080, File(ctx.filesDir, "chat_bg.jpg"), 70) }?.let { SettingsStore.setChatBg("photo:$it") } } }
+        if (u != null) scope.launch { withContext(Dispatchers.IO) { ImageUtil.saveScaled(ctx, u, 1080, File(ctx.filesDir, "chat_bg.jpg"), 70) }?.let { SettingsStore.changeChatBg("photo:$it") } } }
     Body {
         Title("Discussions")
         Group("FOND DE LA DISCUSSION")
         Row(Modifier.padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             listOf("black" to Color.Black, "grey" to Color(0xFF2A2A2A), "white" to Color.White, "blue" to Color(0xFF0A2A5E)).forEach { (id, col) ->
-                Box(Modifier.size(54.dp).background(col, CircleShape).border(if (SettingsStore.chatBg == id) 3.dp else 1.dp, if (SettingsStore.chatBg == id) Color.White else Atlas.Grey, CircleShape).clickable { SettingsStore.setChatBg(id) }) } }
+                Box(Modifier.size(54.dp).background(col, CircleShape).border(if (SettingsStore.chatBg == id) 3.dp else 1.dp, if (SettingsStore.chatBg == id) Color.White else Atlas.Grey, CircleShape).clickable { SettingsStore.changeChatBg(id) }) } }
         Spacer(Modifier.height(12.dp))
         Item("Utiliser ma photo", "Choisir une image de la galerie") { pick.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
         Group("LANGUE")
@@ -395,7 +395,7 @@ private fun IdentityPage(level: Int, onOpenChat: (String) -> Unit, back: () -> U
                 Api.signed("POST", "/v1/identity", JSONObject().put("level", level).put("front", b64("front")).put("back", b64("back")).put("selfie", b64("selfie"))) }
             busy = false
             when {
-                r.ok -> { files.values.forEach { File(it).delete() }; SettingsStore.setCertNote("pending:$level")
+                r.ok -> { files.values.forEach { File(it).delete() }; SettingsStore.changeCertNote("pending:$level")
                     AtlasConfig.install(ctx)
                     ChatRepo.send(AtlasConfig.ASSISTANT_ID, "text", "CERTIFICATION ${Certification.names[level]} (${Certification.prices[level]})\nMes documents d'identité sont envoyés. Envoyez-moi les numéros de paiement.", null)
                     Toast.makeText(ctx, "Demande envoyée", Toast.LENGTH_SHORT).show(); back() }

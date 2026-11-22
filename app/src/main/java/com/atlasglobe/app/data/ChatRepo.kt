@@ -110,8 +110,8 @@ object ChatRepo {
             when (m.kind) { "image" -> "Photo"; "voice" -> "Note vocale"; else -> m.text }, conv)
     }
 
-    fun markSentIfQueued(id: String) { if (msgs.any { it.id == id && it.status == "queued" }) setStatus(id, "sent") }
-    fun setStatus(id: String, s: String) { msgs = msgs.map { if (it.id == id) it.copy(status = s) else it }; save() }
+    fun markSentIfQueued(id: String) { if (msgs.any { it.id == id && it.status == "queued" }) changeStatus(id, "sent") }
+    fun changeStatus(id: String, s: String) { msgs = msgs.map { if (it.id == id) it.copy(status = s) else it }; save() }
     fun deleteForMe(id: String) { msgs = msgs.map { if (it.id == id) it.copy(hidden = true) else it }; save() }
     fun canDeleteForAll(m: Msg): Boolean {
         val me = myId(); val g = group(m.conv)
@@ -207,7 +207,7 @@ object ChatRepo {
             "Vous avez suspendu ${nameOf(u)} pendant ${if (minutes >= 60) "${minutes / 60} h" else "$minutes min"}"
     }
     fun unsuspend(gid: String, u: String) = adminAction(gid) { g -> g.copy(suspended = g.suspended - u) to "Suspension de ${nameOf(u)} levée" }
-    fun setLocked(gid: String, on: Boolean) = adminAction(gid) { g ->
+    fun changeLocked(gid: String, on: Boolean) = adminAction(gid) { g ->
         g.copy(locked = on) to (if (on) "Seuls les administrateurs peuvent écrire" else "Tous les membres peuvent écrire") }
     fun editGroup(gid: String, name: String, desc: String, photo: String?) = adminAction(gid) { g ->
         g.copy(name = name.trim().ifEmpty { g.name }, desc = desc.trim(), photo = photo ?: g.photo) to "Le profil du groupe a été modifié" }
