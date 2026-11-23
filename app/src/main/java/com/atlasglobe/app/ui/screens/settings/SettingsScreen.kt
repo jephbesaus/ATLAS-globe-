@@ -80,7 +80,7 @@ import java.util.UUID
 fun SettingsScreen(onOpenChat: (String) -> Unit, onOpenReseller: () -> Unit) {
     val ctx = LocalContext.current
     val store = remember { ProfileStore(ctx) }
-    var page by remember { mutableStateOf("home") }
+    var page by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("home") }
     BackHandler(enabled = page != "home") { page = "home" }
     when (page) {
         "home" -> Home(store, go = { page = it }, onOpenReseller)
@@ -377,8 +377,10 @@ private fun CertPage(onOpenChat: (String) -> Unit, go: (String) -> Unit) {
 @Composable
 private fun IdentityPage(level: Int, onOpenChat: (String) -> Unit, back: () -> Unit) {
     val ctx = LocalContext.current; val scope = rememberCoroutineScope()
-    val files = remember { mutableStateMapOf<String, String>() }
-    var target by remember { mutableStateOf("") }
+    val files = androidx.compose.runtime.saveable.rememberSaveable(saver = androidx.compose.runtime.saveable.listSaver<androidx.compose.runtime.snapshots.SnapshotStateMap<String, String>, String>(
+        save = { m -> m.entries.flatMap { listOf(it.key, it.value) } },
+        restore = { l -> mutableStateMapOf<String, String>().also { m -> l.chunked(2).forEach { m[it[0]] = it[1] } } })) { mutableStateMapOf<String, String>() }
+    var target by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }; var info by remember { mutableStateOf("") }
     val cam = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
         if (ok) scope.launch { withContext(Dispatchers.IO) { ImageUtil.saveScaled(ctx, android.net.Uri.fromFile(File(ctx.cacheDir, "cam/$target.jpg")), 1400, File(ctx.filesDir, "id/$target.jpg"), 80) }

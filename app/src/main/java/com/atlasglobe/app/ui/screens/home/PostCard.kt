@@ -32,7 +32,7 @@ import com.atlasglobe.app.ui.components.timeAgo
 import com.atlasglobe.app.ui.theme.Atlas
 
 @Composable
-fun PostCard(post: Post, myId: String, following: Boolean, onOpenImage: () -> Unit) {
+fun PostCard(post: Post, myId: String, following: Boolean, onOpenVideo: () -> Unit = {}, onOpenImage: () -> Unit) {
     val ctx = LocalContext.current
     val own = post.authorId == myId
     var menu by remember { mutableStateOf(false) }
@@ -94,6 +94,8 @@ fun PostCard(post: Post, myId: String, following: Boolean, onOpenImage: () -> Un
                 contentScale = ContentScale.Crop)
             else Box(Modifier.fillMaxWidth().aspectRatio(1f))
         }
+
+        if (post.kind == "video") VideoThumb(post, onOpenVideo)
 
         if (post.text.isNotBlank()) Text(post.text, color = Color.White, fontSize = if (post.kind == "text") 17.sp else 15.sp,
             lineHeight = 22.sp, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))

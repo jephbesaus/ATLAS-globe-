@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.atlasglobe.app.data.FeedRepo
+import com.atlasglobe.app.data.Post
 import com.atlasglobe.app.data.Profile
 import com.atlasglobe.app.data.rememberOnline
 import com.atlasglobe.app.ui.components.Avatar
@@ -30,6 +31,7 @@ import com.atlasglobe.app.ui.theme.Atlas
 fun HomeScreen(me: Profile, onOpenStory: (String) -> Unit, onOpenImage: (String) -> Unit, onAddStory: () -> Unit) {
     val online by rememberOnline()
     var tab by remember { mutableIntStateOf(0) }
+    var playing by remember { mutableStateOf<Post?>(null) }
     val posts = FeedRepo.posts
     val stories = FeedRepo.stories
     val following = FeedRepo.following
@@ -88,11 +90,14 @@ fun HomeScreen(me: Profile, onOpenStory: (String) -> Unit, onOpenImage: (String)
         } else {
             val vids = posts.filter { it.kind == "video" }
             if (vids.isEmpty()) item {
-                Text(if (online) "Aucune vidéo pour le moment." else "Les vidéos demandent une connexion Internet.",
+                Text(if (online) "Aucune vidéo pour le moment. Touchez + en haut pour publier la vôtre." else "Les vidéos demandent une connexion Internet.",
                     color = Atlas.Grey, fontSize = 14.sp, textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth().padding(40.dp))
+            } else items(vids, key = { it.id }) { p ->
+                PostCard(p, me.atlasId, p.authorId in following, onOpenVideo = { playing = p }) { onOpenImage(p.id) }
             }
         }
         item { Spacer(Modifier.height(24.dp)) }
     }
+    playing?.let { VideoDialog(it) { playing = null } }
 }

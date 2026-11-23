@@ -72,13 +72,22 @@ app.post('/v1/verify/confirm', deviceAuth, (req, res) => {
 
 app.post('/v1/posts', deviceAuth, (req, res) => {
   const b = req.body || {}; const u = req.user; if (!u) return res.status(404).json({ error: 'register' });
-  if (!b.id || !['text', 'image'].includes(b.kind)) return res.status(400).json({ error: 'bad' });
+  if (!b.id || !['text', 'image', 'video'].includes(b.kind)) return res.status(400).json({ error: 'bad' });
   let media = null;
   if (b.media) { const buf = Buffer.from(b.media, 'base64'); if (buf.length > 400000) return res.status(413).json({ error: 'big' });
     media = sha(b.id).slice(0, 24) + '.jpg'; fs.writeFileSync(path.join(cfg.DATA, 'media', media), buf); }
   db.prepare('INSERT OR IGNORE INTO posts(id,author,author_name,kind,text,media,created_at) VALUES(?,?,?,?,?,?,?)')
     .run(String(b.id), u.id, `${u.prenom} ${u.nom}`.trim(), b.kind, String(b.text || '').slice(0, 600), media, now());
   res.json({ ok: true });
+});
+/** Vidéo d'une publication : corps brut (25 Mo max), signé comme les autres requêtes. */
+app.post('/v1/video/:id', express.raw({ type: () => true, limit: '30mb', verify: (req, res, buf) => { req.rawBody = buf; } }), deviceAuth, (req, res) => {
+  if (!req.user) return res.status(404).json({ error: 'register' });
+  const post = db.prepare("SELECT id FROM posts WHERE id=? AND author=? AND kind='video'").get(req.params.id, req.deviceId);
+  if (!post) return res.status(404).json({ error: 'post' });
+  const buf = req.body; if (!Buffer.isBuffer(buf) || buf.length < 1000 || buf.length > 26000000) return res.status(400).json({ error: 'bad' });
+  const f = sha(req.params.id).slice(0, 24) + '.mp4'; fs.writeFileSync(path.join(cfg.DATA, 'media', f), buf);
+  db.prepare('UPDATE posts SET media=? WHERE id=?').run(f, post.id); res.json({ ok: true });
 });
 app.get('/v1/feed', deviceAuth, (req, res) => {
   const rows = db.prepare(`SELECT p.id, p.author, p.author_name, p.kind, p.text, p.media, p.created_at, u.cert,

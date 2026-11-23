@@ -34,6 +34,23 @@ object Api {
         } catch (e: Exception) { Result(0, null) }
     }
 
+    /** Envoi d'un fichier (vidéo) signé : ECDSA( id|ts|POST|chemin|sha256(fichier) ). */
+    fun upload(path: String, file: File): Boolean {
+        if (!configured()) return false
+        return try {
+            val md = MessageDigest.getInstance("SHA-256")
+            file.inputStream().use { i -> val b = ByteArray(65536); while (true) { val n = i.read(b); if (n < 0) break; md.update(b, 0, n) } }
+            val hash = md.digest().joinToString("") { "%02x".format(it) }
+            val ts = System.currentTimeMillis(); val id = ChatRepo.myId()
+            val sig = Base64.encodeToString(Crypto.sign("$id|$ts|POST|$path|$hash".toByteArray()), Base64.NO_WRAP)
+            val c = URL(SERVER_URL + path).openConnection() as HttpURLConnection
+            c.requestMethod = "POST"; c.doOutput = true; c.setFixedLengthStreamingMode(file.length()); c.connectTimeout = 15000; c.readTimeout = 90000
+            c.setRequestProperty("X-Atlas-Id", id); c.setRequestProperty("X-Atlas-Ts", ts.toString()); c.setRequestProperty("X-Atlas-Sig", sig); c.setRequestProperty("Content-Type", "video/mp4")
+            c.outputStream.use { o -> file.inputStream().use { it.copyTo(o) } }
+            c.responseCode in 200..299
+        } catch (e: Exception) { false }
+    }
+
     fun post(path: String, body: JSONObject): JSONObject? = signed("POST", path, body).takeIf { it.ok }?.json
 
     fun download(path: String, dest: File): Boolean = try {

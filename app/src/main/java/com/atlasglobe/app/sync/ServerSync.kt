@@ -76,6 +76,11 @@ object ServerSync {
         // 2. publications
         FeedRepo.unsyncedPosts().forEach { p ->
             val b = JSONObject().put("id", p.id).put("kind", p.kind).put("text", p.text)
+            if (p.kind == "video") {                                           // la vidéo part en deux temps : fiche, puis fichier
+                val vf = p.mediaPath?.let { File(it) }
+                if (vf != null && vf.exists() && Api.post("/v1/posts", b) != null && Api.upload("/v1/video/${p.id}", vf)) FeedRepo.markSynced(p.id)
+                return@forEach
+            }
             p.mediaPath?.let { m -> File(m).takeIf { it.exists() && it.length() < 380_000 }?.let { b.put("media", Base64.encodeToString(it.readBytes(), Base64.NO_WRAP)) } }
             if (Api.post("/v1/posts", b) != null) FeedRepo.markSynced(p.id)
         }
@@ -93,11 +98,12 @@ object ServerSync {
         val list = ArrayList<Post>()
         for (i in 0 until arr.length()) {
             val o = arr.getJSONObject(i); val id = o.getString("id")
-            var path: String? = null
+            var path: String? = null; var url: String? = null
             o.optString("media", "").takeIf { it.isNotEmpty() && it != "null" }?.let { m ->
-                val f = File(app.filesDir, "media/remote_$m"); if (f.exists() || Api.download("/media/$m", f)) path = f.absolutePath }
+                if (o.getString("kind") == "video") url = Api.SERVER_URL + "/media/" + m
+                else { val f = File(app.filesDir, "media/remote_$m"); if (f.exists() || Api.download("/media/$m", f)) path = f.absolutePath } }
             list.add(Post(id, o.getString("author"), o.optString("author_name"), null, false, o.getString("kind"), o.optString("text"), path,
-                o.getLong("created_at"), o.optInt("likes", 0), o.optInt("liked", 0) == 1 || o.optBoolean("liked", false), false, null, true, o.optInt("cert", 0)))
+                o.getLong("created_at"), o.optInt("likes", 0), o.optInt("liked", 0) == 1 || o.optBoolean("liked", false), false, null, true, o.optInt("cert", 0), url))
         }
         FeedRepo.mergeRemote(list)
     }

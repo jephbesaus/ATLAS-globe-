@@ -72,7 +72,7 @@ const views = {
 
   async posts() { const r = await api('/posts?limit=100');
     view(`<table><tr><th>Auteur</th><th>Contenu</th><th>Date</th><th></th></tr>${r.posts.map(p => `<tr><td>${esc(p.author_name)}<br><span class="mute">${p.author}</span></td>
-      <td>${p.media ? `<img src="/media/${p.media}" style="max-width:140px;display:block;margin-bottom:6px">` : ''}${esc(p.text)}</td><td>${fmt(p.created_at)}</td>
+      <td>${p.media ? (p.media.endsWith('.mp4') ? `<video src="/media/${p.media}" controls preload="none" style="max-width:220px;display:block;margin-bottom:6px"></video>` : `<img src="/media/${p.media}" style="max-width:140px;display:block;margin-bottom:6px">`) : (p.kind === 'video' ? '<span class="tag">vidéo en cours d\'envoi</span>' : '')}${esc(p.text)}</td><td>${fmt(p.created_at)}</td>
       <td>${p.deleted ? '<span class="tag r">Supprimée</span>' : `<button class="btn sm red" data-id="${p.id}">Supprimer</button>`}</td></tr>`).join('')}</table>`);
     $('#view').onclick = async e => { const b = e.target.closest('button[data-id]'); if (!b || !confirm('Supprimer cette publication (fausse ou interdite) ?')) return; await api('/posts/' + b.dataset.id, 'DELETE'); views.posts(); }; },
 

@@ -5,7 +5,7 @@ data class Post(
     val official: Boolean, val kind: String,            // "image" | "text" | "video"
     val text: String, val mediaPath: String?, val createdAt: Long,
     val likes: Int, val likedByMe: Boolean, val saved: Boolean,
-    val repostFrom: String?, val synced: Boolean, val cert: Int = 0
+    val repostFrom: String?, val synced: Boolean, val cert: Int = 0, val mediaUrl: String? = null
 )
 
 data class Story(

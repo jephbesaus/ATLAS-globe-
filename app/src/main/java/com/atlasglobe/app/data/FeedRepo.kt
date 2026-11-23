@@ -128,11 +128,11 @@ object FeedRepo {
     private fun Post.toJson() = JSONObject().put("id", id).put("aid", authorId).put("an", authorName)
         .apply { authorPhoto?.let { put("ap", it) } }.put("off", official).put("k", kind).put("tx", text)
         .apply { mediaPath?.let { put("m", it) } }.put("t", createdAt).put("l", likes).put("lm", likedByMe)
-        .put("sv", saved).apply { repostFrom?.let { put("rp", it) } }.put("sy", synced).put("ct", cert)
+        .put("sv", saved).apply { repostFrom?.let { put("rp", it) } }.put("sy", synced).put("ct", cert).apply { mediaUrl?.let { put("mu", it) } }
     private fun JSONObject.toPost() = Post(getString("id"), getString("aid"), getString("an"),
         optString("ap", "").ifEmpty { null }, getBoolean("off"), getString("k"), getString("tx"),
         optString("m", "").ifEmpty { null }, getLong("t"), getInt("l"), getBoolean("lm"), getBoolean("sv"),
-        optString("rp", "").ifEmpty { null }, getBoolean("sy"), optInt("ct", 0))
+        optString("rp", "").ifEmpty { null }, getBoolean("sy"), optInt("ct", 0), optString("mu", "").ifEmpty { null })
     private fun Story.toJson() = JSONObject().put("id", id).put("aid", authorId).put("an", authorName)
         .apply { authorPhoto?.let { put("ap", it) } }.put("m", mediaPath).put("t", createdAt)
         .put("lm", likedByMe).put("vw", viewed).put("sy", synced)

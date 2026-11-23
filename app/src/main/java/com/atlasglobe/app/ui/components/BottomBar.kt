@@ -41,7 +41,7 @@ fun AtlasBottomBar(current: String?, onNavigate: (String) -> Unit) {
                 Modifier.weight(1f)) { onNavigate(Routes.SETTINGS) }
         }
         val sel = current == Routes.CONNECTIVITY
-        Image(painterResource(R.drawable.wifi_glass), "Connectivité",
+        Image(painterResource(R.drawable.hotspot_btn), "Connectivité",
             Modifier.align(Alignment.TopCenter).offset(y = (-22).dp).size(58.dp).clip(CircleShape)
                 .border(if (sel) 2.5.dp else 1.dp, if (sel) Color.White else Atlas.Grey, CircleShape)
                 .background(Color.Black).clickable { onNavigate(Routes.CONNECTIVITY) },

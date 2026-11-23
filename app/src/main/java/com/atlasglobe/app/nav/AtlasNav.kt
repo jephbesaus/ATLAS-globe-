@@ -1,6 +1,8 @@
 package com.atlasglobe.app.nav
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import com.atlasglobe.app.ui.components.Text
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -49,8 +51,11 @@ fun AtlasNav() {
         }
         composable(Routes.MAIN) {
             val store = remember { ProfileStore(ctx) }
-            if (store.lockEnabled && !AppLockState.unlocked) LockScreen(store) { AppLockState.unlocked = true }
-            else RequirementsGate { if (AccountState.blocked) BlockedScreen() else MainShell(store) }
+            Box(Modifier.fillMaxSize()) {
+                RequirementsGate { if (AccountState.blocked) BlockedScreen() else MainShell(store) }
+                if (store.lockEnabled && !AppLockState.unlocked) Box(Modifier.fillMaxSize().pointerInput(Unit) { detectTapGestures { } }) {
+                    LockScreen(store) { AppLockState.unlocked = true } }
+            }
         }
     }
 }
@@ -138,7 +143,7 @@ fun MainShell(store: ProfileStore) {
 
     if (choose) Dialog(onDismissRequest = { choose = false }) {
         Column(Modifier.fillMaxWidth().background(Atlas.Card, RoundedCornerShape(8.dp))) {
-            listOf("Publication" to "post", "Story" to "story", "Texte" to "text").forEach { (label, mode) ->
+            listOf("Publication" to "post", "Vidéo" to "video", "Story" to "story", "Texte" to "text").forEach { (label, mode) ->
                 Text(label, color = Color.White, fontSize = 17.sp, modifier = Modifier.fillMaxWidth()
                     .clickable { choose = false; tabs.navigate("publish/$mode") }.padding(20.dp))
             }
