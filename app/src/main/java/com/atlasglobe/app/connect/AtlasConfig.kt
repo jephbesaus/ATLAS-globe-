@@ -11,8 +11,8 @@ import com.atlasglobe.app.mesh.MeshStore
 object AtlasConfig {
     const val ASSISTANT_ID = "ATL-ASST-0001"
     const val ASSISTANT_NAME = "Atlas Assistant"
-    const val ASSISTANT_PUB = ""          // base64, fournie par le panel admin
-    const val ADMIN_PUB = ""              // clé qui signe les jetons d'accès (panel admin)
+    const val ASSISTANT_PUB = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAETiRgKrL0/jlB+SIVFc1bhPlySmrlZElwJOpqCl7AB2MF1rc6LaXTI7HQf6nCVGvIUkyY4suq/8xU9DXRz9GofA=="          // base64, fournie par le panel admin
+    const val ADMIN_PUB = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAETiRgKrL0/jlB+SIVFc1bhPlySmrlZElwJOpqCl7AB2MF1rc6LaXTI7HQf6nCVGvIUkyY4suq/8xU9DXRz9GofA=="              // clé qui signe les jetons d'accès (panel admin)
     const val SPEEDTEST_URL = "https://speed.cloudflare.com/__down?bytes=3000000"   // à remplacer par le serveur Atlas
     const val ALLOW_UNSIGNED_TOKENS = false   // true seulement pour les essais avant la création du panel admin
 
