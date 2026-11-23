@@ -9,7 +9,7 @@ import java.security.MessageDigest
 
 /** Contrat avec le serveur Atlas. SERVER_URL vide = serveur non configuré. */
 object Api {
-    const val SERVER_URL = ""            // ex. "https://api.votredomaine.com"  (obligatoirement https)
+    const val SERVER_URL = "https://atlasglobe.duckdns.org:8443"            // ex. "https://api.votredomaine.com"  (obligatoirement https)
 
     fun configured() = SERVER_URL.startsWith("https://")
 
