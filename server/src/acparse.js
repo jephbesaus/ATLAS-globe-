@@ -10,7 +10,7 @@ function finish(it) {
   it.port = +it.port || 0; it.net = (it.net || 'tcp').toLowerCase(); it.security = (it.security || 'none').toLowerCase();
   if (it.proto === 'trojan' && it.security === 'none') it.security = 'tls';
   const why = [];
-  if (it.proto === 'dnstt-payload' || it.proto === 'http-inject') why.push('tunnel par payload : module dédié requis (à venir)'); else if (!['vless', 'vmess', 'trojan', 'ss'].includes(it.proto)) why.push(`protocole ${it.proto} non pris en charge par le moteur`);
+  if (it.proto === 'dnstt-payload' || it.proto === 'http-inject') why.push('tunnel par payload : module dédié requis (à venir)'); else if (it.proto === 'dnstt-payload' || it.proto === 'http-inject') why.push('tunnel par payload : module dédié requis (à venir)'); else if (!['vless', 'vmess', 'trojan', 'ss'].includes(it.proto)) why.push(`protocole ${it.proto} non pris en charge par le moteur`);
   if (!it.host || !it.port) why.push('adresse ou port manquant');
   if (it.net === 'websocket') it.net = 'ws';
   if (it.net === 'http') it.net = 'h2';
@@ -104,7 +104,7 @@ async function analyze(input, filename = '', isBinary = false) {
   if ((text.match(/[\u0000-\u0008\u000e-\u001f]/g) || []).length > 5) return { format: 'binaire', items: [], expire: 0, notes: ['Contenu illisible (chiffré ou propriétaire). Exportez en lien ou JSON.'] };
   if (/^https?:\/\/\S+$/i.test(text)) { format = 'abonnement'; try { const r = await safeFetch(text); text = r.text.trim(); expire = r.expire; if (r.status >= 400) notes.push('Le serveur d\'abonnement a répondu ' + r.status); }
     catch (e) { return { format, items: [], expire: 0, notes: ['URL inaccessible : ' + e.message] }; } }
-  if (/^[\[{]/.test(text)) { try { const j = JSON.parse(text); format = 'JSON'; items = fromJson(j); expire = expire || detectExpire(j); } catch (e) { notes.push('JSON invalide'); } }
+  if (/^[\[{]/.test(text)) { try { const j = JSON.parse(text); format = 'JSON'; items = fromJson(j); expire = expire || detectExpire(j); } catch (e) { notes.push('JSON invalide'); } if (!items.length) { try { items = fromProprietary(JSON.parse(text)); if (items.length) format = 'propriétaire'; } catch (e2) {} }}
   else if (/^\[Interface\]/m.test(text)) { format = 'WireGuard'; items = [{ proto: 'wireguard', name: filename, host: (text.match(/Endpoint\s*=\s*([^:\s]+)/) || [])[1] || '', port: +(text.match(/Endpoint\s*=\s*[^:]+:(\d+)/) || [])[1] || 0, supported: false, why: 'WireGuard : moteur non inclus' }]; }
   else if (/^\s*(client|remote\s+\S+\s+\d+)/m.test(text) && /<ca>|dev tun/i.test(text)) { format = 'OpenVPN'; items = [{ proto: 'openvpn', name: filename, host: (text.match(/^remote\s+(\S+)\s+(\d+)/m) || [])[1] || '', port: +(text.match(/^remote\s+(\S+)\s+(\d+)/m) || [])[2] || 0, supported: false, why: 'OpenVPN : moteur non inclus' }]; }
   else if (/^proxies:/m.test(text)) { format = 'Clash (YAML)'; notes.push('Format Clash : exportez les nœuds en liens ou en JSON.'); }
