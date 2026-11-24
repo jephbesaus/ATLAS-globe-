@@ -24,6 +24,7 @@ object SingBoxCore {
     @Volatile private var port = 0
     @Volatile var lastError = ""; private set
     fun logTail(): String = tail.toList().takeLast(4).joinToString(" | ").take(400)
+    fun logTail(): String = tail.toList().takeLast(4).joinToString(" | ").take(400)
     private val tail = ConcurrentLinkedQueue<String>()
 
     /** Configuration complète : une entrée SOCKS locale, les sorties données par le panel, et le test de vitesse si plusieurs nœuds. */
