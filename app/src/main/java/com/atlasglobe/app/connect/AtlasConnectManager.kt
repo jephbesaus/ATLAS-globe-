@@ -105,7 +105,7 @@ object AtlasConnectManager {
         main.post { status = Status.CONNECTING; message = "" }
         val r = Api.signed("POST", "/v1/ac/config", JSONObject())
         val arr = r.json?.optJSONArray("items")
-        if (!r.ok || arr == null) { onFailed("Connexion impossible. Contactez le support Atlas."); return }
+        if (!r.ok || arr == null) { onFailed("Connexion impossible [cfg] " + com.atlasglobe.app.vpn.SingBoxCore.lastError + " " + com.atlasglobe.app.vpn.SingBoxCore.logTail()); return }
         if (status != Status.CONNECTING) return   // annulé par l'utilisateur pendant la connexion
         val sb = (0 until arr.length()).mapNotNull { arr.getJSONObject(it).optJSONObject("sb") }
         useCore = false
@@ -115,7 +115,7 @@ object AtlasConnectManager {
             useCore = true; outs = emptyList(); idx = 0; okCount = 0; failCount = 0
         } else {
             outs = (0 until arr.length()).mapNotNull { OutboundConfig.from(arr.getJSONObject(it)) }
-            if (outs.isEmpty()) { onFailed("Connexion impossible. Contactez le support Atlas."); return }
+            if (outs.isEmpty()) { onFailed("Connexion impossible [sorties] " + com.atlasglobe.app.vpn.SingBoxCore.lastError + " " + com.atlasglobe.app.vpn.SingBoxCore.logTail()); return }
             idx = 0; okCount = 0; failCount = 0; startFiller()
         }
         c.startService(Intent(c, AtlasVpnService::class.java).putExtra("mode", "connect"))
@@ -137,7 +137,7 @@ object AtlasConnectManager {
         if (useCore) {
             lastDial = System.currentTimeMillis()
             val s = SingBoxCore.dial(host, port)
-            if (s != null) { okCount++; failCount = 0 } else if (okCount == 0 && ++failCount >= 8) { onFailed("Connexion impossible. Contactez le support Atlas."); disconnect() }
+            if (s != null) { okCount++; failCount = 0 } else if (okCount == 0 && ++failCount >= 8) { onFailed("Connexion impossible [trafic] " + com.atlasglobe.app.vpn.SingBoxCore.lastError + " " + com.atlasglobe.app.vpn.SingBoxCore.logTail()); disconnect() }
             return s
         }
         val list = outs; if (list.isEmpty()) return null
@@ -148,7 +148,7 @@ object AtlasConnectManager {
             val s = Outbounds.dial(list[i], host, port, protect, if (k == 0) w else null)
             if (s != null) { idx = i; okCount++; failCount = 0; return s }
         }
-        if (okCount == 0 && ++failCount >= 8) onFailed("Connexion impossible. Contactez le support Atlas.").also { disconnect() }
+        if (okCount == 0 && ++failCount >= 8) onFailed("Connexion impossible [trafic2] " + com.atlasglobe.app.vpn.SingBoxCore.lastError + " " + com.atlasglobe.app.vpn.SingBoxCore.logTail()).also { disconnect() }
         return null
     }
 }
