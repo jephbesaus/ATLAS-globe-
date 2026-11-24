@@ -132,7 +132,7 @@ object BleMesh {
     private fun startScan(mode: MeshMode) {
         if (scanning) return
         scanner = adapter?.bluetoothLeScanner ?: return
-        val f = listOf(ScanFilter.Builder().setServiceUuid(ParcelUuid(SERVICE)).build())
+        val f = emptyList<ScanFilter>()
         val s = ScanSettings.Builder().setScanMode(when (mode) {
             MeshMode.ACTIVE -> ScanSettings.SCAN_MODE_LOW_LATENCY; MeshMode.BALANCED -> ScanSettings.SCAN_MODE_BALANCED
             MeshMode.ECONOMY -> ScanSettings.SCAN_MODE_LOW_POWER }).build()
@@ -152,12 +152,13 @@ object BleMesh {
         val resp = AdvertiseData.Builder().setIncludeDeviceName(false)
             .addServiceData(ParcelUuid(SERVICE), myShort.chunked(2).map { it.toInt(16).toByte() }.toByteArray() +
                 byteArrayOf(if (ResellerState.active) 1 else 0, ResellerState.slots.coerceIn(0, 100).toByte())).build()
-        runCatching { advertiser?.startAdvertising(s, data, resp, advCb) }
+        runCatching { advertiser?.startAdvertising(s, resp, data, advCb) }
     }
-    private val advCb = object : AdvertiseCallback() {}
+    private val advCb = object : AdvertiseCallback() { override fun onStartFailure(errorCode: Int) { main.post { runCatching { android.widget.Toast.makeText(ctx, "Bluetooth emission refusee (code $errorCode)", android.widget.Toast.LENGTH_LONG).show() } } } }
 
     // ---------------- découverte : le plus petit identifiant se connecte ----------------
     private val scanCb = object : ScanCallback() {
+        override fun onScanFailed(errorCode: Int) { main.post { runCatching { android.widget.Toast.makeText(ctx, "Bluetooth recherche refusee (code $errorCode)", android.widget.Toast.LENGTH_LONG).show() } } }
         override fun onScanResult(type: Int, r: ScanResult) {
             val sd = r.scanRecord?.getServiceData(ParcelUuid(SERVICE)) ?: return
             if (sd.size < 4) return
