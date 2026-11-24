@@ -129,7 +129,7 @@ object AtlasConnectManager {
 
     // ---- appelés par le service VPN ----
     fun onTunnelUp() { main.post { if (status == Status.CONNECTING) status = Status.ON } }
-    fun onFailed(msg: String) { runCatching { SingBoxCore.stop() }; main.post { status = Status.OFF; message = msg } }
+    fun onFailed(msg: String) { runCatching { SingBoxCore.stop() }; runCatching { AtlasVpnService.instance?.stopSelf() }; main.post { status = Status.OFF; message = msg } }
     fun onStopped() { runCatching { SingBoxCore.stop() }; main.post { status = Status.OFF } }
 
     /** Chaque flux de l'application passe par le serveur de la configuration ; en cas d'échec on essaie le nœud suivant. */
