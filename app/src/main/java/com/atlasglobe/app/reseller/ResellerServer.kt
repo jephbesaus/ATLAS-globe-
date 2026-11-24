@@ -70,7 +70,7 @@ object ResellerServer {
         if (!ProfileStore(app).resellerApproved) { status = "Compte revendeur non approuvé"; return }
         status = "Ouverture du point d'accès…"
         ssid = "Atlas-" + (ProfileStore(app).load()?.prenom ?: "Revendeur")
-        pass = java.util.UUID.randomUUID().toString().replace("-", "").take(10)
+        pass = java.security.MessageDigest.getInstance("SHA-256").digest(("atlas-ag-v1|" + ssid).toByteArray()).joinToString("") { "%02x".format(it) }.take(10)
         try { app.applicationContext.startActivity(android.content.Intent(android.provider.Settings.ACTION_WIRELESS_SETTINGS).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (e: Exception) {}
         openServer()
         status = "Activez le partage de connexion Android. Nom : $ssid. Mot de passe : $pass"
