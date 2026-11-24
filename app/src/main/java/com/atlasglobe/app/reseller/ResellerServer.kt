@@ -69,6 +69,12 @@ object ResellerServer {
         app = c.applicationContext
         if (!ProfileStore(app).resellerApproved) { status = "Compte revendeur non approuvé"; return }
         status = "Ouverture du point d'accès…"
+        ssid = "Atlas-" + (ProfileStore(app).load()?.prenom ?: "Revendeur")
+        pass = java.util.UUID.randomUUID().toString().replace("-", "").take(10)
+        try { app.applicationContext.startActivity(android.content.Intent(android.provider.Settings.ACTION_WIRELESS_SETTINGS).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (e: Exception) {}
+        openServer()
+        status = "Activez le partage de connexion Android. Nom : $ssid. Mot de passe : $pass"
+        return
         val wm = app.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
         try {
             wm.startLocalOnlyHotspot(object : WifiManager.LocalOnlyHotspotCallback() {

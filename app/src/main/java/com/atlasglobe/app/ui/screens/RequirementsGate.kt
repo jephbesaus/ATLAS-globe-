@@ -16,7 +16,7 @@ import com.atlasglobe.app.ui.screens.register.PermissionStep
 import com.atlasglobe.app.ui.screens.register.Reqs
 
 /** Si le Bluetooth, la localisation ou les notifications sont coupés, Atlas redemande de les activer. */
-const val BLOCK_WHOLE_APP = true   // false = ne bloquer que les fonctions mesh
+const val BLOCK_WHOLE_APP = false   // false = ne bloquer que les fonctions mesh
 
 @Composable
 fun RequirementsGate(content: @Composable () -> Unit) {
