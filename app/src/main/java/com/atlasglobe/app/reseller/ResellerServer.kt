@@ -81,7 +81,7 @@ object ResellerServer {
                     if (ssid.isEmpty() || pass.isEmpty()) { status = "Point d'accès invalide"; stop(); return }
                     openServer()
                 }
-                override fun onFailed(reason: Int) { status = "Impossible d'ouvrir le point d'accès. Activez la localisation et coupez le partage de connexion Android."; running = false }
+                override fun onFailed(reason: Int) { status = "Impossible d'ouvrir le point d'accès. (code $reason) Activez la localisation et coupez le partage de connexion Android."; running = false }
                 override fun onStopped() { if (running) stop() }
             }, main)
         } catch (e: Exception) { status = "Autorisations Wi-Fi manquantes ou point d'accès indisponible" }
