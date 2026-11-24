@@ -23,7 +23,7 @@ function toOutbound(it) {
     if (sec === 'reality') {
       if (!it.pbk) return null;
       tls.utls = { enabled: true, fingerprint: fp || 'chrome' };
-      tls.reality = { enabled: true, public_key: it.pbk, short_id: it.sid || '' };
+      tls.reality = { enabled: true, public_key: it.pbk, short_id: it.sid || '' }; tls.utls = { enabled: true, fingerprint: it.fp || 'chrome' };
     } else if (fp) tls.utls = { enabled: true, fingerprint: fp };
     o.tls = tls;
   }
