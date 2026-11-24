@@ -12,10 +12,12 @@ function finish(it) {
   const why = [];
   if (!['vless', 'vmess', 'trojan', 'ss'].includes(it.proto)) why.push(`protocole ${it.proto} non pris en charge par le moteur`);
   if (!it.host || !it.port) why.push('adresse ou port manquant');
-  if (!['tcp', 'ws', 'websocket'].includes(it.net)) why.push(`transport ${it.net} non pris en charge`);
   if (it.net === 'websocket') it.net = 'ws';
-  if (['reality', 'xtls'].includes(it.security)) why.push('Reality/XTLS non pris en charge');
-  if (it.proto === 'vless' && it.flow) why.push('flow ' + it.flow + ' non pris en charge');
+  if (it.net === 'http') it.net = 'h2';
+  if (!['tcp', 'ws', 'grpc', 'httpupgrade', 'h2'].includes(it.net)) why.push(`transport ${it.net} non pris en charge`);
+  if (it.security === 'xtls') why.push('XTLS ancien non pris en charge (utilisez Reality ou TLS)');
+  if (it.security === 'reality' && !it.pbk) why.push('clé publique Reality (pbk) manquante');
+  if (it.flow && (it.proto !== 'vless' || it.flow !== 'xtls-rprx-vision')) why.push('flow ' + it.flow + ' non pris en charge');
   if (it.proto === 'ss' && !SS_OK.includes(it.method)) why.push(`méthode ${it.method} non prise en charge`);
   if (it.proto === 'vmess' && Number(it.aid || 0) !== 0) why.push('VMess ancien (alterId ≠ 0) non pris en charge');
   if (['vless', 'vmess'].includes(it.proto) && !/^[0-9a-f-]{32,36}$/i.test(it.id || '')) why.push('UUID invalide');
@@ -37,7 +39,8 @@ function fromLink(line) {
       return finish({ proto: 'ss', name, host: host.replace(/^\[|\]$/g, ''), port, method: (method || '').toLowerCase(), pass }); }
     const u = new URL(line); const q = u.searchParams; const base = { name: dec(u.hash.replace(/^#/, '')), host: u.hostname.replace(/^\[|\]$/g, ''), port: u.port || 443,
       net: q.get('type') || 'tcp', path: dec(q.get('path') || '/'), hostHeader: q.get('host') || '', security: q.get('security') || 'none', sni: q.get('sni') || q.get('peer') || '',
-      insecure: ['1', 'true'].includes(q.get('allowInsecure') || q.get('insecure') || ''), alpn: q.get('alpn') ? dec(q.get('alpn')).split(',') : [], flow: q.get('flow') || '' };
+      insecure: ['1', 'true'].includes(q.get('allowInsecure') || q.get('insecure') || ''), alpn: q.get('alpn') ? dec(q.get('alpn')).split(',') : [], flow: q.get('flow') || '',
+      fp: q.get('fp') || '', pbk: q.get('pbk') || '', sid: q.get('sid') || '', serviceName: dec(q.get('serviceName') || '') };
     if (sch === 'vless') return finish({ ...base, proto: 'vless', id: dec(u.username) });
     if (sch === 'trojan') return finish({ ...base, proto: 'trojan', pass: dec(u.username) });
     if (['hysteria2', 'hy2', 'hysteria', 'tuic', 'wireguard', 'socks', 'http', 'https'].includes(sch) && sch !== 'http' && sch !== 'https')
@@ -54,9 +57,10 @@ function fromJson(o) {
     const p = (b.protocol || b.type || '').toLowerCase(); const ss = b.streamSettings || {};
     let it = null;
     if (b.protocol) {                                              // Xray / V2Ray
-      const st = ss.security || 'none', tl = ss.tlsSettings || {}, ws = ss.wsSettings || {};
+      const st = ss.security || 'none', rl = ss.realitySettings || {}, tl = st === 'reality' ? rl : (ss.tlsSettings || {}), ws = ss.wsSettings || {}, hu = ss.httpupgradeSettings || {}, gr = ss.grpcSettings || {};
       const common = { name: b.tag || '', net: ss.network || 'tcp', security: st, sni: tl.serverName || '', insecure: !!tl.allowInsecure, alpn: tl.alpn || [],
-        path: ws.path || '/', hostHeader: (ws.headers && (ws.headers.Host || ws.headers.host)) || ws.host || '' };
+        path: ws.path || hu.path || '/', hostHeader: (ws.headers && (ws.headers.Host || ws.headers.host)) || ws.host || hu.host || '',
+        fp: tl.fingerprint || '', pbk: rl.publicKey || '', sid: rl.shortId || '', serviceName: gr.serviceName || '' };
       const s = b.settings || {};
       if (p === 'vless' || p === 'vmess') { const v = (s.vnext || [])[0] || {}; const u = (v.users || [])[0] || {};
         it = { ...common, proto: p, host: v.address, port: v.port, id: u.id, flow: u.flow || '', aid: u.alterId || 0, scy: u.security || 'auto' }; }
@@ -66,7 +70,8 @@ function fromJson(o) {
       const tl = b.tls || {}, tr = b.transport || {};
       it = { name: b.tag || '', proto: p === 'shadowsocks' ? 'ss' : p, host: b.server, port: b.server_port, id: b.uuid, pass: b.password, method: (b.method || '').toLowerCase(),
         net: tr.type || 'tcp', path: tr.path || '/', hostHeader: (tr.headers && tr.headers.Host) || '', security: tl.reality && tl.reality.enabled ? 'reality' : (tl.enabled ? 'tls' : 'none'),
-        sni: tl.server_name || '', insecure: !!tl.insecure, flow: b.flow || '', aid: b.alter_id || 0, scy: b.security || 'auto' };
+        sni: tl.server_name || '', insecure: !!tl.insecure, flow: b.flow || '', aid: b.alter_id || 0, scy: b.security || 'auto',
+        fp: (tl.utls && tl.utls.fingerprint) || '', pbk: (tl.reality && tl.reality.public_key) || '', sid: (tl.reality && tl.reality.short_id) || '', serviceName: tr.service_name || '' };
     }
     if (it) { it.dns = dnsList[0] || ''; out.push(finish(it)); }
   }

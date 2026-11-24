@@ -319,7 +319,7 @@ app.post('/v1/ac/config', deviceAuth, (req, res) => {
   const c = acOf(req.deviceId); if (!c || c.status !== 'active' || c.expires_at <= now() || !c.config_id) return res.status(403).json({ error: 'unavailable' });
   const cf = db.prepare('SELECT items FROM ac_configs WHERE id=?').get(c.config_id); if (!cf) return res.status(403).json({ error: 'unavailable' });
   const keep = ['proto', 'host', 'port', 'id', 'pass', 'method', 'aid', 'scy', 'net', 'path', 'hostHeader', 'security', 'sni', 'insecure', 'alpn', 'flow'];
-  const items = JSON.parse(cf.items).filter(i => i.supported).slice(0, 8).map(i => Object.fromEntries(keep.filter(k => i[k] !== undefined).map(k => [k, i[k]])));
+  const items = JSON.parse(cf.items).filter(i => i.supported).slice(0, 8).map(i => { const o = Object.fromEntries(keep.filter(k => i[k] !== undefined).map(k => [k, i[k]])); const sb = require('./singbox').toOutbound(i); if (sb) o.sb = sb; return o; });
   if (!items.length) return res.status(403).json({ error: 'unavailable' });
   res.json({ items });
 });
