@@ -109,7 +109,12 @@ async function analyze(input, filename = '', isBinary = false) {
     for (const l of links) { const it = fromLink(l); if (it) items.push(it); }
   }
   items.forEach(it => { if (!expire) { const m = (it.name || '').match(/(\d{4}-\d{2}-\d{2})/); if (m) { const t = Date.parse(m[1]); if (t > 1e11) expire = t; } } });
-  if (!items.length && !notes.length) notes.push('Aucune configuration reconnue.');
+  if (!items.length && !notes.length) {
+    const flat = text.replace(/\s/g, '');
+    notes.push(flat.length > 80 && /^[A-Za-z0-9+/=_-]+$/.test(flat) && !/:\/\//.test(text)
+      ? 'Ce texte ressemble à un fichier chiffré d\'une autre application : seule cette application peut le lire. Demandez à son propriétaire une configuration en lien (vless://, vmess://, trojan://, ss://) ou en JSON.'
+      : 'Aucune configuration reconnue.');
+  }
   return { format, items: items.slice(0, 100), expire, notes };
 }
 

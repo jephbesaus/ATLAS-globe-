@@ -42,6 +42,8 @@ object ConnectionManager {
     private var netCb: ConnectivityManager.NetworkCallback? = null
     private var attempt = 0
     private var okOnce = false
+    @Volatile private var manualStop = false   // le client a coupé lui-même : on ne reconnecte pas tout seul
+    private var altTries = 0
 
     fun init(c: Context) { if (!::app.isInitialized) app = c.applicationContext }
 
@@ -59,6 +61,7 @@ object ConnectionManager {
         init(c)
         val g = ConnectStore.grant ?: return set(State.ERROR, "Aucun accès acheté")
         if (state == State.TUNNEL || state == State.JOINING) return
+        manualStop = false; if (resellerId == null) altTries = 0
         target = resellerId ?: target ?: g.resellerId; attempt++
         val t = target!!
         set(State.ASKING, "Recherche de ${g.resellerName}…")
@@ -119,6 +122,21 @@ object ConnectionManager {
         if (gateway.isEmpty()) return fail("Adresse du revendeur introuvable")
         set(State.TUNNEL, "Connexion sécurisée…")
         app.startService(Intent(app, AtlasVpnService::class.java))
+        tunnelWatchdog(attempt)
+    }
+
+    /** Si le revendeur ne laisse passer aucun flux en 20 s : on coupe le VPN (la clé disparaît) et on essaie un autre revendeur une fois. */
+    private fun tunnelWatchdog(my: Int) {
+        main.postDelayed({
+            if (my == attempt && state == State.TUNNEL) {
+                val failed = target
+                fail("Ce revendeur ne fournit pas de connexion internet")
+                val alt = runCatching { ResellerDirectory.recommended() }.getOrNull()
+                if (!manualStop && alt != null && alt.id.isNotEmpty() && alt.id != failed && altTries < 1) {
+                    altTries++; main.postDelayed({ if (!manualStop) connect(app, alt.id) }, 1500)
+                }
+            }
+        }, 20_000)
     }
 
     // ---- retours du VPN ----
@@ -138,16 +156,17 @@ object ConnectionManager {
 
     private fun roam() {
         main.postDelayed({
-            if (!ConnectStore.isActive || state == State.CONNECTED) return@postDelayed
+            if (manualStop || !ConnectStore.isActive || state == State.CONNECTED) return@postDelayed
             BleMesh.searchResellers(app, 8_000)
             main.postDelayed({
+                if (manualStop) return@postDelayed
                 val best = ResellerDirectory.recommended()
                 if (best != null && best.id.isNotEmpty()) { state = State.IDLE; connect(app, best.id) } else roam()
             }, 9_000)
         }, 4_000)
     }
 
-    fun disconnect() { stopVpn(); releaseNetwork(); network = null; okOnce = false; set(State.IDLE) }
+    fun disconnect() { manualStop = true; attempt++; stopVpn(); releaseNetwork(); network = null; okOnce = false; set(State.IDLE) }
     private fun fail(m: String) { stopVpn(); releaseNetwork(); set(State.ERROR, m) }
     private fun stopVpn() { runCatching { AtlasVpnService.instance?.stopSelf() } }
     private fun releaseNetwork() { netCb?.let { runCatching { cm().unregisterNetworkCallback(it) } }; netCb = null }

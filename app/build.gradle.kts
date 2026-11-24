@@ -11,6 +11,7 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
     }
     buildTypes {
         release { isMinifyEnabled = true; isShrinkResources = true
@@ -19,6 +20,7 @@ android {
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
     buildFeatures { compose = true }
+    packaging { jniLibs { useLegacyPackaging = true } }   // le moteur sing-box est extrait sur disque pour pouvoir être lancé
     composeOptions { kotlinCompilerExtensionVersion = "1.5.14" }
 }
 dependencies {

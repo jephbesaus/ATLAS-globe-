@@ -101,8 +101,7 @@ private fun HomeStage(onOpenChat: (String) -> Unit) {
     fun power() {
         val s = AtlasConnectManager.state ?: return
         when {
-            AtlasConnectManager.status == Status.ON -> AtlasConnectManager.disconnect()
-            AtlasConnectManager.status == Status.CONNECTING -> {}
+            AtlasConnectManager.status == Status.ON || AtlasConnectManager.status == Status.CONNECTING -> scope.launch(Dispatchers.IO) { AtlasConnectManager.disconnect() }
             s.suspended -> Toast.makeText(ctx, "Ce compte est suspendu", Toast.LENGTH_SHORT).show()
             !s.hasConfig -> Toast.makeText(ctx, "Votre configuration n'est pas encore activée par Atlas", Toast.LENGTH_LONG).show()
             !(s.expiresAt > System.currentTimeMillis()) -> { Toast.makeText(ctx, "Aucun abonnement actif : choisissez un tarif", Toast.LENGTH_LONG).show(); tariffs = true }

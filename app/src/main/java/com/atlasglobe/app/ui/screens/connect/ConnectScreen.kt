@@ -101,6 +101,7 @@ private fun HomeStage(onSearch: () -> Unit) {
                 if (ConnectStore.isActive) {
                     Text(clock(rem), color = Color.White, fontSize = 34.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 8.dp))
                     Text("Temps restant", color = Atlas.Grey, fontSize = 12.sp)
+                    ConnectionControls()
                 } else ConnectionPanel()
             }
             Spacer(Modifier.height(16.dp))
@@ -214,6 +215,24 @@ private fun DetailStage(o: Offer, onOpenChat: (String) -> Unit) {
 
 /** Connexion invisible : le globe tourne, puis "Félicitations, vous êtes connecté". */
 @Composable
+private fun ConnectionControls() {
+    val ctx = LocalContext.current
+    val st = ConnectionManager.state
+    val vpn = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { if (it.resultCode == Activity.RESULT_OK) ConnectionManager.connect(ctx) }
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(top = 12.dp)) {
+        when (st) {
+            ConnectionManager.State.IDLE, ConnectionManager.State.ERROR -> {
+                if (st == ConnectionManager.State.ERROR) Text(ConnectionManager.message, color = Atlas.Alert, fontSize = 13.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(bottom = 8.dp))
+                WhiteButton("Se connecter", true) { val i = VpnService.prepare(ctx); if (i != null) vpn.launch(i) else ConnectionManager.connect(ctx) }
+            }
+            ConnectionManager.State.CONNECTED -> WhiteButton("Couper la connexion", true) { ConnectionManager.disconnect() }
+            else -> { Text(ConnectionManager.message, color = Color.White, fontSize = 13.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(bottom = 8.dp))
+                WhiteButton("Annuler", true) { ConnectionManager.disconnect() } }
+        }
+    }
+}
+
+@Composable
 private fun ConnectionPanel() {
     val ctx = LocalContext.current
     val st = ConnectionManager.state
@@ -221,8 +240,10 @@ private fun ConnectionPanel() {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(top = 8.dp)) {
         when (st) {
             ConnectionManager.State.ASKING, ConnectionManager.State.JOINING, ConnectionManager.State.TUNNEL -> {
-                SpinningGlobe(90.dp); Spacer(Modifier.height(8.dp)); Text(ConnectionManager.message, color = Color.White, fontSize = 14.sp, textAlign = TextAlign.Center) }
-            ConnectionManager.State.CONNECTED -> Text(ConnectionManager.message, color = Color.White, fontSize = 16.sp, textAlign = TextAlign.Center)
+                SpinningGlobe(90.dp); Spacer(Modifier.height(8.dp)); Text(ConnectionManager.message, color = Color.White, fontSize = 14.sp, textAlign = TextAlign.Center)
+                Spacer(Modifier.height(12.dp)); WhiteButton("Annuler", true) { ConnectionManager.disconnect() } }
+            ConnectionManager.State.CONNECTED -> { Text(ConnectionManager.message, color = Color.White, fontSize = 16.sp, textAlign = TextAlign.Center)
+                Spacer(Modifier.height(12.dp)); WhiteButton("Couper la connexion", true) { ConnectionManager.disconnect() } }
             else -> {
                 Text(if (st == ConnectionManager.State.ERROR) ConnectionManager.message else "Paiement approuvé", color = if (st == ConnectionManager.State.ERROR) Atlas.Alert else Color.White,
                     fontSize = 16.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(bottom = 10.dp))

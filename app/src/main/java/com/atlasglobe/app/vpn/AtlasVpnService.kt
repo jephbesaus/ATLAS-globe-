@@ -56,8 +56,13 @@ class AtlasVpnService : VpnService() {
     }
 
     private fun stopTunnel() {
-        proxy?.stop(); proxy = null
-        runCatching { tun?.close() }; tun = null
+        // Arrêt hors du thread principal : fermer des connexions bloquées ne doit jamais figer le bouton ni garder la clé VPN.
+        val p = proxy; val t = tun; proxy = null; tun = null
+        Thread({
+            val th = Thread({ runCatching { p?.stop() } }, "atlas-stop-proxy").also { it.isDaemon = true }
+            th.start(); runCatching { th.join(1500) }
+            runCatching { t?.close() }
+        }, "atlas-stop").also { it.isDaemon = true }.start()
     }
 
     override fun onRevoke() { if (mode == "connect") AtlasConnectManager.onStopped() else ConnectionManager.onVpnRevoked(); stopTunnel(); super.onRevoke() }

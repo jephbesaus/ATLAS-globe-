@@ -13,6 +13,7 @@ import com.atlasglobe.app.sync.ServerSync
 import com.atlasglobe.app.vpn.AtlasVpnService
 import com.atlasglobe.app.vpn.OutboundConfig
 import com.atlasglobe.app.vpn.Outbounds
+import com.atlasglobe.app.vpn.SingBoxCore
 import org.json.JSONObject
 import java.net.Socket
 
@@ -37,6 +38,7 @@ object AtlasConnectManager {
     @Volatile private var failCount = 0
     @Volatile private var lastDial = 0L
     @Volatile private var protectFn: (Socket) -> Unit = {}
+    @Volatile private var useCore = false
     private val warm = java.util.concurrent.ConcurrentLinkedQueue<Outbounds.Transport>()
 
     /** Garde 2 transports prêts tant que l'utilisateur navigue : les nouvelles connexions s'ouvrent aussitôt (VPN rapide). */
@@ -104,9 +106,18 @@ object AtlasConnectManager {
         val r = Api.signed("POST", "/v1/ac/config", JSONObject())
         val arr = r.json?.optJSONArray("items")
         if (!r.ok || arr == null) { onFailed("Connexion impossible. Contactez le support Atlas."); return }
-        outs = (0 until arr.length()).mapNotNull { OutboundConfig.from(arr.getJSONObject(it)) }
-        if (outs.isEmpty()) { onFailed("Connexion impossible. Contactez le support Atlas."); return }
-        idx = 0; okCount = 0; failCount = 0; startFiller()
+        if (status != Status.CONNECTING) return   // annulé par l'utilisateur pendant la connexion
+        val sb = (0 until arr.length()).mapNotNull { arr.getJSONObject(it).optJSONObject("sb") }
+        useCore = false
+        if (sb.isNotEmpty()) {
+            // Moteur universel : sing-box lit exactement la configuration donnée par le panel (Reality, vision, uTLS, ws, gRPC…).
+            if (!SingBoxCore.start(c, sb)) { onFailed(SingBoxCore.lastError.ifEmpty { "Moteur indisponible. Contactez le support Atlas." }); return }
+            useCore = true; outs = emptyList(); idx = 0; okCount = 0; failCount = 0
+        } else {
+            outs = (0 until arr.length()).mapNotNull { OutboundConfig.from(arr.getJSONObject(it)) }
+            if (outs.isEmpty()) { onFailed("Connexion impossible. Contactez le support Atlas."); return }
+            idx = 0; okCount = 0; failCount = 0; startFiller()
+        }
         c.startService(Intent(c, AtlasVpnService::class.java).putExtra("mode", "connect"))
         main.postDelayed({ if (status == Status.CONNECTING) { disconnect(); onFailed("Connexion impossible. Réessayez dans un instant.") } }, 15_000)
         state?.expiresAt?.let { exp -> val d = exp - System.currentTimeMillis()
@@ -114,15 +125,21 @@ object AtlasConnectManager {
                 NotificationHelper.connectivity(app, "Atlas Connect", "Votre abonnement est terminé. Choisissez un tarif pour vous reconnecter.") } }, d + 1000) }
     }
 
-    fun disconnect() { runCatching { AtlasVpnService.instance?.stopSelf() }; main.post { status = Status.OFF } }
+    fun disconnect() { runCatching { AtlasVpnService.instance?.stopSelf() }; runCatching { SingBoxCore.stop() }; main.post { status = Status.OFF } }
 
     // ---- appelés par le service VPN ----
     fun onTunnelUp() { main.post { if (status == Status.CONNECTING) status = Status.ON } }
-    fun onFailed(msg: String) { main.post { status = Status.OFF; message = msg } }
-    fun onStopped() { main.post { status = Status.OFF } }
+    fun onFailed(msg: String) { runCatching { SingBoxCore.stop() }; main.post { status = Status.OFF; message = msg } }
+    fun onStopped() { runCatching { SingBoxCore.stop() }; main.post { status = Status.OFF } }
 
     /** Chaque flux de l'application passe par le serveur de la configuration ; en cas d'échec on essaie le nœud suivant. */
     fun dial(host: String, port: Int, protect: (Socket) -> Unit): Socket? {
+        if (useCore) {
+            lastDial = System.currentTimeMillis()
+            val s = SingBoxCore.dial(host, port)
+            if (s != null) { okCount++; failCount = 0 } else if (okCount == 0 && ++failCount >= 8) { onFailed("Connexion impossible. Contactez le support Atlas."); disconnect() }
+            return s
+        }
         val list = outs; if (list.isEmpty()) return null
         protectFn = protect; lastDial = System.currentTimeMillis()
         val w = warm.poll()
