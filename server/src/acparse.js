@@ -10,7 +10,7 @@ function finish(it) {
   it.port = +it.port || 0; it.net = (it.net || 'tcp').toLowerCase(); it.security = (it.security || 'none').toLowerCase();
   if (it.proto === 'trojan' && it.security === 'none') it.security = 'tls';
   const why = [];
-  if (!['vless', 'vmess', 'trojan', 'ss'].includes(it.proto)) why.push(`protocole ${it.proto} non pris en charge par le moteur`);
+  if (it.proto === 'dnstt-payload' || it.proto === 'http-inject') why.push('tunnel par payload : module dédié requis (à venir)'); else if (!['vless', 'vmess', 'trojan', 'ss'].includes(it.proto)) why.push(`protocole ${it.proto} non pris en charge par le moteur`);
   if (!it.host || !it.port) why.push('adresse ou port manquant');
   if (it.net === 'websocket') it.net = 'ws';
   if (it.net === 'http') it.net = 'h2';
@@ -136,4 +136,28 @@ function testItem(it) {
     s.on('timeout', () => { s.destroy(); fin({ ok: false, note: 'délai dépassé' }); }); s.on('error', e => fin({ ok: false, note: e.code || e.message }));
   });
 }
-module.exports = { analyze, testItem };
+
+function fromProprietary(o) {
+  const out = [];
+  const elc = o.encryptedLockedConfig && o.encryptedLockedConfig.EncryptedLockedConfig;
+  if (elc && elc.V2RayConfig && elc.V2RayConfig.EncryptedConfig) {
+    const inj = elc.InjectConfig || {};
+    const items = fromJson(elc.V2RayConfig.EncryptedConfig);
+    items.forEach(it => {
+      if (inj.EncryptedMode === 'PROXY' && inj.EncryptedProxyHost) { it.injectHost = inj.EncryptedProxyHost; it.injectPort = +inj.EncryptedProxyPort || 0; }
+      if (inj.EncryptedPayload) it.payload = inj.EncryptedPayload;
+    });
+    out.push(...items);
+  }
+  if (o.Fserver && o.FpubKey) {
+    const [host, port] = String(o.Fserver).split(':');
+    out.push(finish({ proto: 'dnstt-payload', name: o.Location || '', host, port: +port || 443, dnsttHost: o.FTunnelDomain || '', dnsttPub: o.FpubKey, payload: o.Payload || '', cdn: o.CDNTargetADDR || '' }));
+  }
+  if (o.payload && o.remoteProxy) {
+    const [phost, pport] = String(o.remoteProxy).split(':');
+    out.push(finish({ proto: 'http-inject', name: 'HTTP Injector', host: phost, port: +pport || 80, sni: o.sniHostname || '', payload: o.payload, user: o.user || '', pass: o.password || '' }));
+  }
+  return out;
+}
+
+module.exports = { analyze, testItem, fromProprietary };
