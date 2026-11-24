@@ -20,10 +20,10 @@ function toOutbound(it) {
     if (it.insecure) tls.insecure = true;
     if (it.alpn && it.alpn.length) tls.alpn = it.alpn;
     const fp = FP_OK.includes(String(it.fp || '').toLowerCase()) ? String(it.fp).toLowerCase() : '';
-    if (sec === 'reality') {
+        if (sec === 'reality') {
       if (!it.pbk) return null;
+      tls.reality = { enabled: true, public_key: it.pbk, short_id: it.sid || '' };
       tls.utls = { enabled: true, fingerprint: fp || 'chrome' };
-      tls.reality = { enabled: true, public_key: it.pbk, short_id: it.sid || '' }; tls.utls = { enabled: true, fingerprint: it.fp || 'chrome' };
     } else if (fp) tls.utls = { enabled: true, fingerprint: fp };
     o.tls = tls;
   }
