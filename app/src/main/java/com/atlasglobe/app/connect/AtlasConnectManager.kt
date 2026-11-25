@@ -27,7 +27,7 @@ data class AcState(val name: String, val balance: Int, val expiresAt: Long, val 
  */
 object AtlasConnectManager {
 private fun dbg(line: String) { runCatching {
-    val f = java.io.File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOAD), "atlas_debug.txt")
+    val f = java.io.File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS), "atlas_debug.txt")
     f.appendText(java.text.SimpleDateFormat("HH:mm:ss.SSS").format(java.util.Date()) + " " + line + "\n")
 } }
 

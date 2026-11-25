@@ -18,7 +18,7 @@ import java.net.Socket
  */
 class AtlasVpnService : VpnService() {
 private fun dbgSvc(line: String) { runCatching {
-    val f = java.io.File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOAD), "atlas_debug.txt")
+    val f = java.io.File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS), "atlas_debug.txt")
     f.appendText(java.text.SimpleDateFormat("HH:mm:ss.SSS").format(java.util.Date()) + " " + line + "\n")
 } }
 
@@ -74,7 +74,7 @@ private fun dbgSvc(line: String) { runCatching {
 
     override fun onRevoke() { if (mode == "connect") AtlasConnectManager.onStopped() else ConnectionManager.onVpnRevoked(); stopTunnel(); super.onRevoke() }
     override fun onDestroy() {
-        dbgSvc("onDestroy du service") stopTunnel(); if (instance === this) instance = null; if (mode == "connect") AtlasConnectManager.onStopped(); super.onDestroy() }
+        dbgSvc("onDestroy du service"); stopTunnel(); if (instance === this) instance = null; if (mode == "connect") AtlasConnectManager.onStopped(); super.onDestroy() }
 
     companion object { @Volatile var instance: AtlasVpnService? = null }
 }
