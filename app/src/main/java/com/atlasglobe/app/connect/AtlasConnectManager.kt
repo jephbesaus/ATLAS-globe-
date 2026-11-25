@@ -130,11 +130,11 @@ private fun dbg(line: String) { runCatching {
                 NotificationHelper.connectivity(app, "Atlas Connect", "Votre abonnement est terminé. Choisissez un tarif pour vous reconnecter.") } }, d + 1000) }
     }
 
-    fun disconnect() { dbg("disconnect appele"); runCatching { AtlasVpnService.instance?.stopSelf() }; runCatching { app.stopService(Intent(app, AtlasVpnService::class.java)) }; runCatching { SingBoxCore.stop() }; dbg("disconnect termine, instance=" + (AtlasVpnService.instance != null)); main.post { status = Status.OFF } }
+    fun disconnect() { dbg("disconnect appele"); runCatching { AtlasVpnService.instance?.shutdown() }; runCatching { app.stopService(Intent(app, AtlasVpnService::class.java)) }; runCatching { SingBoxCore.stop() }; dbg("disconnect termine, instance=" + (AtlasVpnService.instance != null)); main.post { status = Status.OFF } }
 
     // ---- appelés par le service VPN ----
     fun onTunnelUp() { main.post { if (status == Status.CONNECTING) status = Status.ON } }
-    fun onFailed(msg: String) { dbg("onFailed appele : " + msg.take(60)); runCatching { SingBoxCore.stop() }; runCatching { AtlasVpnService.instance?.stopSelf() }; runCatching { app.stopService(Intent(app, AtlasVpnService::class.java)) }; dbg("onFailed termine, instance=" + (AtlasVpnService.instance != null)); main.post { status = Status.OFF; message = msg } }
+    fun onFailed(msg: String) { dbg("onFailed appele : " + msg.take(60)); runCatching { SingBoxCore.stop() }; runCatching { AtlasVpnService.instance?.shutdown() }; runCatching { app.stopService(Intent(app, AtlasVpnService::class.java)) }; dbg("onFailed termine, instance=" + (AtlasVpnService.instance != null)); main.post { status = Status.OFF; message = msg } }
     fun onStopped() { runCatching { SingBoxCore.stop() }; main.post { status = Status.OFF } }
 
     /** Chaque flux de l'application passe par le serveur de la configuration ; en cas d'échec on essaie le nœud suivant. */
@@ -142,7 +142,7 @@ private fun dbg(line: String) { runCatching {
         if (useCore) {
             lastDial = System.currentTimeMillis()
             val s = SingBoxCore.dial(host, port)
-            if (s != null) { okCount++; failCount = 0 } else if (okCount == 0 && ++failCount >= 8) { onFailed("Connexion impossible [trafic] " + com.atlasglobe.app.vpn.SingBoxCore.lastError + " " + com.atlasglobe.app.vpn.SingBoxCore.logTail()); disconnect() }
+            if (s != null) { okCount++; failCount = 0 } else if (okCount == 0 && ++failCount == 8) { onFailed("Connexion impossible [trafic] " + com.atlasglobe.app.vpn.SingBoxCore.lastError + " " + com.atlasglobe.app.vpn.SingBoxCore.logTail()); disconnect() }
             return s
         }
         val list = outs; if (list.isEmpty()) return null
@@ -153,7 +153,7 @@ private fun dbg(line: String) { runCatching {
             val s = Outbounds.dial(list[i], host, port, protect, if (k == 0) w else null)
             if (s != null) { idx = i; okCount++; failCount = 0; return s }
         }
-        if (okCount == 0 && ++failCount >= 8) onFailed("Connexion impossible [trafic2] " + com.atlasglobe.app.vpn.SingBoxCore.lastError + " " + com.atlasglobe.app.vpn.SingBoxCore.logTail()).also { disconnect() }
+        if (okCount == 0 && ++failCount == 8) onFailed("Connexion impossible [trafic2] " + com.atlasglobe.app.vpn.SingBoxCore.lastError + " " + com.atlasglobe.app.vpn.SingBoxCore.logTail()).also { disconnect() }
         return null
     }
 }

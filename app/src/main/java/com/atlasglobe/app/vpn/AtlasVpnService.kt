@@ -76,5 +76,16 @@ private fun dbgSvc(line: String) { runCatching {
     override fun onDestroy() {
         dbgSvc("onDestroy du service"); stopTunnel(); if (instance === this) instance = null; if (mode == "connect") AtlasConnectManager.onStopped(); super.onDestroy() }
 
+    /** Arrêt complet depuis l'extérieur : on ferme d'abord l'interface VPN (c'est ce qui fait disparaître la clé), puis le service. */
+    fun shutdown() {
+        val p = proxy; val t = tun; proxy = null; tun = null
+        Thread({
+            val th = Thread({ runCatching { p?.stop() } }, "atlas-stop-proxy").also { it.isDaemon = true }
+            th.start(); runCatching { th.join(1500) }
+            runCatching { t?.close() }
+            runCatching { stopSelf() }
+        }, "atlas-shutdown").also { it.isDaemon = true }.start()
+    }
+
     companion object { @Volatile var instance: AtlasVpnService? = null }
 }

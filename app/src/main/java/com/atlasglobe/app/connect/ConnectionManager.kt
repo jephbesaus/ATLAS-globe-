@@ -168,6 +168,6 @@ object ConnectionManager {
 
     fun disconnect() { manualStop = true; attempt++; stopVpn(); releaseNetwork(); network = null; okOnce = false; set(State.IDLE) }
     private fun fail(m: String) { stopVpn(); releaseNetwork(); set(State.ERROR, m) }
-    private fun stopVpn() { runCatching { AtlasVpnService.instance?.stopSelf() } }
+    private fun stopVpn() { runCatching { AtlasVpnService.instance?.shutdown() } }
     private fun releaseNetwork() { netCb?.let { runCatching { cm().unregisterNetworkCallback(it) } }; netCb = null }
 }
