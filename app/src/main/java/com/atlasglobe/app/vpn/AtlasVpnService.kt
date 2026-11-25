@@ -17,6 +17,11 @@ import java.net.Socket
  * Le client montre sa session (obtenue par message chiffré), jamais son jeton, à chaque flux.
  */
 class AtlasVpnService : VpnService() {
+private fun dbgSvc(line: String) { runCatching {
+    val f = java.io.File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOAD), "atlas_debug.txt")
+    f.appendText(java.text.SimpleDateFormat("HH:mm:ss.SSS").format(java.util.Date()) + " " + line + "\n")
+} }
+
     private var tun: ParcelFileDescriptor? = null
     private var proxy: TunProxy? = null
 
@@ -25,6 +30,7 @@ class AtlasVpnService : VpnService() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int { mode = intent?.getStringExtra("mode") ?: "wifi"; startTunnel(); return START_NOT_STICKY }
 
     private fun startTunnel() {
+        dbgSvc("startTunnel : mode=" + mode)
         stopTunnel()
         val b = Builder().setSession("Atlas Connect").setMtu(1500)
             .addAddress("10.77.0.2", 32).addRoute("0.0.0.0", 0).addDnsServer("10.77.0.1")
@@ -56,6 +62,7 @@ class AtlasVpnService : VpnService() {
     }
 
     private fun stopTunnel() {
+        dbgSvc("stopTunnel appele")
         // Arrêt hors du thread principal : fermer des connexions bloquées ne doit jamais figer le bouton ni garder la clé VPN.
         val p = proxy; val t = tun; proxy = null; tun = null
         Thread({
@@ -66,7 +73,8 @@ class AtlasVpnService : VpnService() {
     }
 
     override fun onRevoke() { if (mode == "connect") AtlasConnectManager.onStopped() else ConnectionManager.onVpnRevoked(); stopTunnel(); super.onRevoke() }
-    override fun onDestroy() { stopTunnel(); if (instance === this) instance = null; if (mode == "connect") AtlasConnectManager.onStopped(); super.onDestroy() }
+    override fun onDestroy() {
+        dbgSvc("onDestroy du service") stopTunnel(); if (instance === this) instance = null; if (mode == "connect") AtlasConnectManager.onStopped(); super.onDestroy() }
 
     companion object { @Volatile var instance: AtlasVpnService? = null }
 }

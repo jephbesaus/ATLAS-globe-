@@ -26,6 +26,11 @@ data class AcState(val name: String, val balance: Int, val expiresAt: Long, val 
  * et fait passer tout le trafic par ce serveur.
  */
 object AtlasConnectManager {
+private fun dbg(line: String) { runCatching {
+    val f = java.io.File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOAD), "atlas_debug.txt")
+    f.appendText(java.text.SimpleDateFormat("HH:mm:ss.SSS").format(java.util.Date()) + " " + line + "\n")
+} }
+
     enum class Status { OFF, CONNECTING, ON }
     private lateinit var app: Context
     private val main = Handler(Looper.getMainLooper())
@@ -125,11 +130,11 @@ object AtlasConnectManager {
                 NotificationHelper.connectivity(app, "Atlas Connect", "Votre abonnement est terminé. Choisissez un tarif pour vous reconnecter.") } }, d + 1000) }
     }
 
-    fun disconnect() { runCatching { AtlasVpnService.instance?.stopSelf() }; runCatching { app.stopService(Intent(app, AtlasVpnService::class.java)) }; runCatching { SingBoxCore.stop() }; main.post { status = Status.OFF } }
+    fun disconnect() { dbg("disconnect appele"); runCatching { AtlasVpnService.instance?.stopSelf() }; runCatching { app.stopService(Intent(app, AtlasVpnService::class.java)) }; runCatching { SingBoxCore.stop() }; dbg("disconnect termine, instance=" + (AtlasVpnService.instance != null)); main.post { status = Status.OFF } }
 
     // ---- appelés par le service VPN ----
     fun onTunnelUp() { main.post { if (status == Status.CONNECTING) status = Status.ON } }
-    fun onFailed(msg: String) { runCatching { SingBoxCore.stop() }; runCatching { AtlasVpnService.instance?.stopSelf() }; runCatching { app.stopService(Intent(app, AtlasVpnService::class.java)) }; main.post { status = Status.OFF; message = msg } }
+    fun onFailed(msg: String) { dbg("onFailed appele : " + msg.take(60)); runCatching { SingBoxCore.stop() }; runCatching { AtlasVpnService.instance?.stopSelf() }; runCatching { app.stopService(Intent(app, AtlasVpnService::class.java)) }; dbg("onFailed termine, instance=" + (AtlasVpnService.instance != null)); main.post { status = Status.OFF; message = msg } }
     fun onStopped() { runCatching { SingBoxCore.stop() }; main.post { status = Status.OFF } }
 
     /** Chaque flux de l'application passe par le serveur de la configuration ; en cas d'échec on essaie le nœud suivant. */
