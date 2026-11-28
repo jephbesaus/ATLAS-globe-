@@ -30,3 +30,5 @@ CREATE TABLE IF NOT EXISTS ac_tariffs(id INTEGER PRIMARY KEY AUTOINCREMENT, labe
 CREATE TABLE IF NOT EXISTS ac_tx(id INTEGER PRIMARY KEY AUTOINCREMENT, client INTEGER, kind TEXT, amount INTEGER, note TEXT, created_at INTEGER);
 `);
 module.exports = db;
+
+try { db.exec('ALTER TABLE users ADD COLUMN balance INTEGER DEFAULT 0'); } catch (e) {}

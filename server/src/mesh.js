@@ -29,6 +29,9 @@ function sendControl(userId, obj) { const u = getUser(userId); if (!u) return fa
 function ack(user, id) { queue(user.id, { i: uid(), ty: 'ack', s: ASSISTANT_ID, d: user.id, l: 8, t: Date.now(), sp: '', b: b64(id) }); }
 
 function parseOrder(user, text) {
+  const r = text.match(/^RECHARGE (\d+)/);
+  if (r) { const amt = +r[1]; if (amt > 0) db.prepare(`INSERT INTO orders(id,user,plan_id,plan_label,amount,reseller_name,status,created_at) VALUES(?,?,?,?,?,?, 'awaiting', ?)`)
+    .run('RCH-' + uid().slice(0, 8).toUpperCase(), user.id, 'WALLET_RECHARGE', 'Recharge portefeuille', amt, '', Date.now()); return; }
   const m = text.match(/^COMMANDE (CMD-[A-Z0-9]+)/); if (!m) return;
   const plan = tariffs.find((text.match(/\[([a-z0-9]+)\]/) || [])[1]); if (!plan) return;
   const rn = (text.match(/Revendeur : (.*)/) || [])[1] || '';
@@ -59,6 +62,20 @@ function processIncoming(packets) {
         if (o.type === 'rate') db.prepare('INSERT OR REPLACE INTO ratings(order_id,reseller,stars,created_at) VALUES(?,?,?,?)').run(String(o.order), String(o.reseller), +o.stars | 0, Date.now());
         if (o.type === 'usage' && Array.isArray(o.list)) for (const r of o.list)
           db.prepare('INSERT INTO usage_reports(reseller,tid,bytes,used_ms,created_at) VALUES(?,?,?,?,?)').run(user.id, String(r.tid), +r.bytes || 0, +r.usedMs || 0, Date.now());
+        if (o.type === 'wallet_buy') {
+          const plan = tariffs.find(o.planId);
+          if (!plan) { sendText(user.id, 'Offre inconnue.'); }
+          else if ((user.balance || 0) < plan.fc) { sendText(user.id, `Solde insuffisant. Il vous manque ${plan.fc - (user.balance || 0)} FC.`); }
+          else {
+            db.prepare('UPDATE users SET balance=balance-? WHERE id=?').run(plan.fc, user.id);
+            const tid = 'TK-' + crypto.randomBytes(6).toString('hex').toUpperCase();
+            const token = ac.makeToken({ tid, u: user.id, p: plan.id, dur: tariffs.durMs(plan), mb: plan.mb });
+            const oid = 'CMD-' + uid().slice(0, 8).toUpperCase();
+            db.prepare(`INSERT INTO orders(id,user,plan_id,plan_label,amount,reseller_name,status,created_at,decided_at,tid) VALUES(?,?,?,?,?,?, 'approved', ?, ?, ?)`)
+              .run(oid, user.id, plan.id, plan.label, plan.fc, String(o.resellerName || ''), Date.now(), Date.now(), tid);
+            sendControl(user.id, { type: 'grant', orderId: oid, token });
+          }
+        }
       }
     } catch (e) { /* paquet invalide : ignoré */ }
   }

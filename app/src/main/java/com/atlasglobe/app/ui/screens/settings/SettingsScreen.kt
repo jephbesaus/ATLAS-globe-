@@ -89,6 +89,7 @@ fun SettingsScreen(onOpenChat: (String) -> Unit, onOpenReseller: () -> Unit) {
         "notifs" -> NotifsPage()
         "mesh" -> MeshPage()
         "connect" -> ConnectPage(onOpenReseller)
+        "wallet" -> WalletPage()
         "battery" -> BatteryPage()
         "chats" -> ChatsPage()
         "storage" -> StoragePage()
@@ -128,6 +129,7 @@ private fun Home(store: ProfileStore, go: (String) -> Unit, onOpenReseller: () -
         Item("Stockage", "Médias et nettoyage") { go("storage") }
         Group("CONNECTIVITÉ")
         Item("Mes achats Wi-Fi", "${ConnectStore.orders.size} achat(s)") { go("connect") }
+        Item("Portefeuille Atlas", "Solde : ${com.atlasglobe.app.connect.WalletStore.balanceFc} FC") { go("wallet") }
         if (ResellerAccess.approved) Item("Espace Revendeur Wi-Fi", "Ouvrir ma connexion, clients, vitesse") { onOpenReseller() }
         Group("PLUS")
         Item("Contacts bloqués", "${ChatRepo.blocked.size}") { go("blocked") }
@@ -516,4 +518,44 @@ private fun AtlasConnectPage() = Body {
     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) { com.atlasglobe.app.ui.components.SpinningGlobe(110.dp) }
     P("Atlas Connect, le VPN Atlas, est en préparation.")
     P("Cette section sera complétée dès que ses détails seront confirmés. Pour acheter du Wi-Fi auprès d'un revendeur près de vous, utilisez le bouton Wi-Fi au centre de la barre du bas.")
+}
+
+// ---------------- Portefeuille : recharge par Mobile Money, paiement instantané ----------------
+@Composable
+private fun WalletPage() {
+    val ctx = LocalContext.current
+    val clip = androidx.compose.ui.platform.LocalClipboardManager.current
+    var amount by remember { mutableStateOf("") }
+    var tidInput by remember { mutableStateOf("") }
+    var sent by remember { mutableStateOf(false) }
+    Body {
+        Title("Portefeuille")
+        Text("Solde actuel : ${com.atlasglobe.app.connect.WalletStore.balanceFc} FC", color = Color.White, fontSize = 18.sp,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
+        Group("RECHARGER PAR MOBILE MONEY")
+        Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp).clickable {
+            clip.setText(androidx.compose.ui.text.AnnotatedString("0994435517"))
+        }, verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("0994435517", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                Text("Joseph Jeph", color = Atlas.Grey, fontSize = 13.sp)
+            }
+            Icon(Icons.Filled.ContentCopy, "Copier", tint = Atlas.Grey)
+        }
+        HorizontalDivider(color = Atlas.Line)
+        Text("Envoyez le montant souhaité à ce numéro, puis indiquez ci-dessous combien vous avez envoyé et l'identifiant de la transaction reçu par SMS.",
+            color = Atlas.Grey, fontSize = 13.sp, modifier = Modifier.padding(20.dp))
+        OutlinedTextField(value = amount, onValueChange = { amount = it.filter { c -> c.isDigit() } }, label = { Text("Montant envoyé (FC)") },
+            singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp))
+        Spacer(Modifier.height(10.dp))
+        OutlinedTextField(value = tidInput, onValueChange = { tidInput = it }, label = { Text("ID de la transaction") },
+            singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp))
+        Spacer(Modifier.height(16.dp))
+        WhiteButton(if (sent) "Envoyé, en attente d'approbation" else "J'ai payé",
+            amount.toIntOrNull()?.let { it > 0 } == true && tidInput.isNotBlank() && !sent) {
+            com.atlasglobe.app.connect.WalletStore.requestRecharge(ctx, amount.toInt(), tidInput)
+            sent = true
+        }
+        Spacer(Modifier.height(24.dp))
+    }
 }

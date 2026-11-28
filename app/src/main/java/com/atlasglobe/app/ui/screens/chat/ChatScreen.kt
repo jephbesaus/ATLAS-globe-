@@ -107,7 +107,7 @@ fun ChatScreen(conv: String, onGroupInfo: () -> Unit) {
         // En-tête
         Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             Row(Modifier.weight(1f).clickable { if (isGroup) onGroupInfo() else showProfile = true }, verticalAlignment = Alignment.CenterVertically) {
-                Avatar(ChatRepo.titleOf(conv), group?.photo, 40.dp)
+                Avatar(ChatRepo.titleOf(conv), if (conv == com.atlasglobe.app.connect.AtlasConfig.ASSISTANT_ID) com.atlasglobe.app.connect.AssistantAvatar.path(ctx) else group?.photo, 40.dp)
                 Spacer(Modifier.width(10.dp))
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {

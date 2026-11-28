@@ -29,3 +29,26 @@ object AtlasConfig {
         if (pub().isNotEmpty()) MeshStore.setKey(ASSISTANT_ID, pub(), ASSISTANT_NAME)
     }
 }
+
+/** Avatar officiel de l'assistant Atlas : une silhouette noir et blanc générée une seule fois sur le disque. */
+object AssistantAvatar {
+    private var cached: String? = null
+    fun path(c: Context): String {
+        cached?.let { return it }
+        val f = java.io.File(c.filesDir, "assistant_avatar.png")
+        if (!f.exists()) {
+            val size = 256
+            val bmp = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
+            val canvas = android.graphics.Canvas(bmp)
+            canvas.drawColor(android.graphics.Color.BLACK)
+            val p = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.WHITE }
+            canvas.drawCircle(size / 2f, size * 0.37f, size * 0.20f, p)
+            val path = android.graphics.Path()
+            path.addRoundRect(android.graphics.RectF(size * 0.22f, size * 0.58f, size * 0.78f, size * 1.05f),
+                size * 0.28f, size * 0.28f, android.graphics.Path.Direction.CW)
+            canvas.drawPath(path, p)
+            runCatching { f.outputStream().use { bmp.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) } }
+        }
+        return f.absolutePath.also { cached = it }
+    }
+}

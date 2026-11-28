@@ -146,6 +146,11 @@ object MeshRouter {
                 com.atlasglobe.app.notify.NotificationHelper.connectivity(app, "Paiement approuvé",
                     "Connexion à ${com.atlasglobe.app.connect.ConnectStore.grant?.resellerName ?: "votre revendeur"} en cours.")
                 com.atlasglobe.app.connect.ConnectionManager.autoConnect(app) }
+            "wallet_credited" -> if (p.src == com.atlasglobe.app.connect.AtlasConfig.ASSISTANT_ID) {
+                com.atlasglobe.app.connect.WalletStore.init(app)
+                com.atlasglobe.app.connect.WalletStore.onCredited(o.optInt("amount", 0))
+                com.atlasglobe.app.notify.NotificationHelper.connectivity(app, "Portefeuille Atlas",
+                    "Votre recharge de ${o.optInt("amount", 0)} FC a été approuvée.") }
             "reseller" -> if (p.src == com.atlasglobe.app.connect.AtlasConfig.ASSISTANT_ID) {
                 val ok = o.optBoolean("approved", false)
                 com.atlasglobe.app.data.ProfileStore(app).setResellerApprovedFromServer(ok)

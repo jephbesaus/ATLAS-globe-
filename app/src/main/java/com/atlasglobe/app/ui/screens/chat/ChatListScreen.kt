@@ -55,7 +55,7 @@ fun ChatListScreen(onOpen: (String) -> Unit, onContacts: () -> Unit, onNewGroup:
             items(convs, key = { it }) { id ->
                 val last = ChatRepo.conversation(id).lastOrNull(); val un = ChatRepo.unread(id)
                 Row(Modifier.fillMaxWidth().clickable { onOpen(id) }.padding(horizontal = 20.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Avatar(ChatRepo.titleOf(id), ChatRepo.group(id)?.photo, 50.dp)
+                    Avatar(ChatRepo.titleOf(id), if (id == com.atlasglobe.app.connect.AtlasConfig.ASSISTANT_ID) com.atlasglobe.app.connect.AssistantAvatar.path(ctx) else ChatRepo.group(id)?.photo, 50.dp)
                     Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f)) {
                         Text(ChatRepo.titleOf(id), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)

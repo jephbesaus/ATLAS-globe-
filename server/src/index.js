@@ -2,6 +2,7 @@ const express = require('express'), cookieParser = require('cookie-parser'), jwt
 const crypto = require('crypto'), fs = require('fs'), path = require('path');
 const bus = require('./bus'), calls = require('./calls'), acparse = require('./acparse');
 const cfg = require('./config'), db = require('./db'), ac = require('./atlascrypto'), mesh = require('./mesh'), mail = require('./mail'), tariffs = require('./tariffs');
+const zendit = require('./zendit');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -214,9 +215,21 @@ admin.get('/groups/:id', (req, res) => { const g = db.prepare('SELECT * FROM gro
   const members = ids.map(id => db.prepare('SELECT id,nom,prenom,phone,country,province,city,blocked FROM users WHERE id=?').get(id) || { id }); res.json({ group: { ...g, members: undefined }, members }); });
 
 // ---- paiements ----
+admin.get('/zendit/offers', async (req, res) => {
+  try { const country = String(req.query.country || 'CD').toUpperCase();
+    const j = await zendit.listOffers(country, +req.query._limit || 100, +req.query._offset || 0);
+    res.json(j);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 admin.get('/orders', (req, res) => res.json({ orders: db.prepare(`SELECT o.*, u.nom, u.prenom, u.phone FROM orders o LEFT JOIN users u ON u.id=o.user ORDER BY o.created_at DESC LIMIT 300`).all() }));
 admin.post('/orders/:id/approve', (req, res) => {
   const o = db.prepare('SELECT * FROM orders WHERE id=?').get(req.params.id); if (!o || o.status !== 'awaiting') return res.status(400).json({ error: 'déjà traitée' });
+  if (o.plan_id === 'WALLET_RECHARGE') {
+    db.prepare('UPDATE users SET balance=COALESCE(balance,0)+? WHERE id=?').run(o.amount, o.user);
+    db.prepare("UPDATE orders SET status='approved', decided_at=? WHERE id=?").run(now(), o.id);
+    mesh.sendControl(o.user, { type: 'wallet_credited', amount: o.amount });
+    return res.json({ ok: true });
+  }
   const plan = tariffs.find(o.plan_id); if (!plan) return res.status(400).json({ error: 'offre inconnue' });
   const tid = 'TK-' + crypto.randomBytes(6).toString('hex').toUpperCase();
   const token = ac.makeToken({ tid, u: o.user, p: plan.id, dur: tariffs.durMs(plan), mb: plan.mb });

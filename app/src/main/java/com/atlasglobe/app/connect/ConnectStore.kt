@@ -24,6 +24,27 @@ data class Grant(val orderId: String, val token: String, val resellerId: String,
                  val planId: String, val durationMs: Long, val megabytes: Int, val activatedAtWall: Long, val activatedAtElapsed: Long)
 
 object ConnectStore {
+    var relayAccepted by mutableStateOf(false); private set
+    var bonusGiven by mutableStateOf(false); private set
+
+    fun acceptRelay() { relayAccepted = true; save() }
+
+    /** Crédité en continu selon la contribution réelle (voir ResellerServer). Ne dépend plus du bonus unique. */
+    fun creditRelayMinutes(min: Int) {
+        val g = grant ?: return
+        if (!isActive) return
+        grant = g.copy(durationMs = g.durationMs + min * 60_000L)
+        save(); scheduleAlarms()
+    }
+
+    /** +30 min une seule fois, si le relais a été accepté et le bonus pas encore donné. */
+    fun giveBonusIfEligible(): Boolean {
+        if (!relayAccepted || bonusGiven) return false
+        val g = grant ?: return false
+        grant = g.copy(durationMs = g.durationMs + 30 * 60_000L)
+        bonusGiven = true; save(); scheduleAlarms()
+        return true
+    }
     private lateinit var app: Context
     private val file get() = File(app.filesDir, "connect.json")
     var orders by mutableStateOf<List<Order>>(emptyList()); private set
@@ -38,6 +59,7 @@ object ConnectStore {
                 Order(o.getString("id"), o.getString("p"), o.getString("r"), o.getString("rn"), o.getInt("a"), o.getLong("t"), o.getString("s"), o.getInt("st")) } } }
             j.optJSONObject("grant")?.let { o -> grant = Grant(o.getString("o"), o.getString("k"), o.getString("r"), o.getString("rn"),
                 o.getString("p"), o.getLong("d"), o.getInt("mb"), o.getLong("aw"), o.getLong("ae")) }
+            relayAccepted = j.optBoolean("relay", false); bonusGiven = j.optBoolean("bonus", false)
         }
     }
 
@@ -112,6 +134,7 @@ object ConnectStore {
             .put("rn", it.resellerName).put("a", it.amountFc).put("t", it.createdAt).put("s", it.status).put("st", it.rated)) } })
         grant?.let { g -> j.put("grant", JSONObject().put("o", g.orderId).put("k", g.token).put("r", g.resellerId).put("rn", g.resellerName)
             .put("p", g.planId).put("d", g.durationMs).put("mb", g.megabytes).put("aw", g.activatedAtWall).put("ae", g.activatedAtElapsed)) }
+        j.put("relay", relayAccepted).put("bonus", bonusGiven)
         runCatching { file.writeText(j.toString()) }
     }
 }

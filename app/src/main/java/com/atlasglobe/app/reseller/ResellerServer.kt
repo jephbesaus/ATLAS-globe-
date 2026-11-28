@@ -52,6 +52,7 @@ object ResellerServer {
     private val sessions = ConcurrentHashMap<String, String>()          // session secrète -> tid
     private val usages = ConcurrentHashMap<String, Usage>()             // tid -> consommation
     private var lastReport = 0L; private var warnedLow = false
+    private val relayedBytesAcc = java.util.concurrent.atomic.AtomicLong(0)
 
     data class ClientRow(val tid: String, val user: String, val plan: String, val remainingMs: Long, val usedBytes: Long)
 
@@ -153,22 +154,27 @@ object ResellerServer {
             if (u.expired()) { c.getOutputStream().write(2); return c.close() }
             val host = h.getString("h"); val port = h.getInt("p")
             if (!allowed(host, port)) { c.getOutputStream().write(3); return c.close() }
-            out = Socket().also { it.receiveBufferSize = 262144; it.sendBufferSize = 262144; it.connect(InetSocketAddress(host, port), 8000); it.tcpNoDelay = true }
+            out = if (com.atlasglobe.app.connect.ConnectStore.relayAccepted && com.atlasglobe.app.connect.ConnectionManager.state == com.atlasglobe.app.connect.ConnectionManager.State.CONNECTED)
+                com.atlasglobe.app.connect.ConnectionManager.dial(host, port) { s2 -> runCatching { app.getSystemService(Context.CONNECTIVITY_SERVICE) } }
+                    ?: run { c.getOutputStream().write(5); return c.close() }
+            else Socket().also { it.receiveBufferSize = 262144; it.sendBufferSize = 262144; it.connect(InetSocketAddress(host, port), 8000); it.tcpNoDelay = true }
             c.getOutputStream().write(0); c.getOutputStream().flush(); c.soTimeout = 0
             u.sockets.add(c); u.sockets.add(out); u.lastSeen = SystemClock.elapsedRealtime()
             val a = out; val usage = u
-            val t = thread(isDaemon = true) { pipe(a.getInputStream(), c.getOutputStream(), usage) }
-            pipe(c.getInputStream(), a.getOutputStream(), usage)
+            val t = thread(isDaemon = true) { pipe(a.getInputStream(), c.getOutputStream(), usage, if (viaRelay) relayCounter else null) }
+            pipe(c.getInputStream(), a.getOutputStream(), usage, if (viaRelay) relayCounter else null)
             t.join(2000)
+            if (viaRelay) relayedBytesAcc.addAndGet(relayCounter.get())
         } catch (e: Exception) { runCatching { c.getOutputStream().write(4) } }
         finally { runCatching { c.close() }; runCatching { out?.close() }; u?.sockets?.remove(c); out?.let { u?.sockets?.remove(it) } }
     }
 
-    private fun pipe(i: InputStream, o: java.io.OutputStream, u: Usage) {
+    private fun pipe(i: InputStream, o: java.io.OutputStream, u: Usage, extra: java.util.concurrent.atomic.AtomicLong? = null) {
         val buf = ByteArray(65536)
         try { while (true) { val n = i.read(buf); if (n < 0) break
             if (u.expired()) break                                           // temps fini : seul ce client est coupé
-            o.write(buf, 0, n); o.flush(); u.bytes.addAndGet(n.toLong()); u.lastSeen = SystemClock.elapsedRealtime() } } catch (e: Exception) { }
+            o.write(buf, 0, n); o.flush(); u.bytes.addAndGet(n.toLong()); u.lastSeen = SystemClock.elapsedRealtime()
+            extra?.addAndGet(n.toLong()) } } catch (e: Exception) { }
         runCatching { o.flush() }
     }
 
@@ -192,6 +198,11 @@ object ResellerServer {
         if (System.currentTimeMillis() - lastReport > 300_000 && usages.isNotEmpty()) { lastReport = System.currentTimeMillis()
             val a = JSONArray(); usages.values.forEach { a.put(JSONObject().put("tid", it.tid).put("bytes", it.bytes.get()).put("usedMs", now - it.firstUse)) }
             MeshRouter.sendControlTo(AtlasConfig.ASSISTANT_ID, JSONObject().put("type", "usage").put("list", a)) }
+        val THRESHOLD = 50_000_000L; val MINUTES_PER_THRESHOLD = 10
+        while (relayedBytesAcc.get() >= THRESHOLD) {
+            relayedBytesAcc.addAndGet(-THRESHOLD)
+            com.atlasglobe.app.connect.ConnectStore.creditRelayMinutes(MINUTES_PER_THRESHOLD)
+        }
         main.postDelayed(this, 5000)
     } }
 }

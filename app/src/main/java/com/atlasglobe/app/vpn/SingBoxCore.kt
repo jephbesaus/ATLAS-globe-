@@ -38,10 +38,13 @@ object SingBoxCore {
         ob.put(JSONObject().put("type", "direct").put("tag", "direct"))
         return JSONObject()
             .put("log", JSONObject().put("level", "warn"))
-            .put("dns", JSONObject().put("servers", JSONArray().put(JSONObject().put("type", "local").put("tag", "local"))))
+            .put("dns", JSONObject().put("servers", JSONArray()
+                .put(JSONObject().put("type", "udp").put("tag", "remote").put("server", "1.1.1.1").put("detour", fin))
+                .put(JSONObject().put("type", "local").put("tag", "local"))))
             .put("inbounds", JSONArray().put(JSONObject().put("type", "socks").put("tag", "in").put("listen", "127.0.0.1").put("listen_port", socksPort)))
             .put("outbounds", ob)
-            .put("route", JSONObject().put("final", fin).put("default_domain_resolver", "local"))
+            .put("route", JSONObject().put("final", fin).put("default_domain_resolver", "remote")
+                .put("rules", JSONArray().put(JSONObject().put("port", 53).put("outbound", "direct"))))
     }
 
     /** Démarre le moteur et attend qu'il écoute. À appeler hors du thread principal. */

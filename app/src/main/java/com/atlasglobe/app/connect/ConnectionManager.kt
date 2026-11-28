@@ -166,8 +166,22 @@ object ConnectionManager {
         }, 4_000)
     }
 
+    /** Fait remonter le trafic d'un autre appareil (relais) vers CE revendeur, par le même tunnel que ce client utilise déjà. */
+    fun dial(host: String, port: Int): Socket? {
+        if (state != State.CONNECTED) return null
+        val s = Socket()
+        return try {
+            network?.bindSocket(s); s.tcpNoDelay = true; s.receiveBufferSize = 262144; s.sendBufferSize = 262144
+            s.connect(InetSocketAddress(gateway, this.port), 6000)
+            val hdr = org.json.JSONObject().put("s", session).put("h", host).put("p", port).toString()
+            s.getOutputStream().write(("ATL1 " + android.util.Base64.encodeToString(hdr.toByteArray(), android.util.Base64.NO_WRAP) + "\n").toByteArray())
+            s.getOutputStream().flush()
+            if (s.getInputStream().read() == 0) s else { s.close(); null }
+        } catch (e: Exception) { runCatching { s.close() }; null }
+    }
+
     fun disconnect() { manualStop = true; attempt++; stopVpn(); releaseNetwork(); network = null; okOnce = false; set(State.IDLE) }
     private fun fail(m: String) { stopVpn(); releaseNetwork(); set(State.ERROR, m) }
-    private fun stopVpn() { runCatching { AtlasVpnService.instance?.shutdown() } }
+    private fun stopVpn() { runCatching { AtlasVpnService.instance?.shutdown() }; runCatching { app.stopService(Intent(app, AtlasVpnService::class.java)) } }
     private fun releaseNetwork() { netCb?.let { runCatching { cm().unregisterNetworkCallback(it) } }; netCb = null }
 }

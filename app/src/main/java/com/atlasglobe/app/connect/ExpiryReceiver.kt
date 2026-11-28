@@ -11,8 +11,10 @@ class ExpiryReceiver : BroadcastReceiver() {
         ConnectStore.init(c)
         when (i.getStringExtra("kind")) {
             "soon" -> NotificationHelper.connectivity(c, "Atlas Connect", "Il vous reste 5 minutes de connexion.")
-            "end" -> { ConnectStore.end(); ConnectionManager.disconnect()
-                NotificationHelper.connectivity(c, "Atlas Connect", "Votre temps est terminé. Veuillez renouveler votre connexion.") }
+            "end" -> { if (ConnectStore.giveBonusIfEligible())
+                    NotificationHelper.connectivity(c, "Atlas Connect", "Merci d'être relais ! +30 minutes offertes.")
+                else { ConnectStore.end(); ConnectionManager.disconnect()
+                    NotificationHelper.connectivity(c, "Atlas Connect", "Votre temps est terminé. Veuillez renouveler votre connexion.") } }
         }
     }
 }

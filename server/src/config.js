@@ -13,4 +13,5 @@ module.exports = {
   BREVO_API_KEY: process.env.BREVO_API_KEY || '', MAIL_FROM: process.env.MAIL_FROM || 'no-reply@atlasglobe.app',
   MAIL_FROM_NAME: process.env.MAIL_FROM_NAME || 'Atlas Globe',
   ASSISTANT_ID: 'ATL-ASST-0001',
+  ZENDIT_API_KEY: process.env.ZENDIT_API_KEY || '',
 };
