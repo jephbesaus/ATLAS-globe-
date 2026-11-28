@@ -227,7 +227,7 @@ admin.post('/orders/:id/approve', (req, res) => {
   if (o.plan_id === 'WALLET_RECHARGE') {
     db.prepare('UPDATE users SET balance=COALESCE(balance,0)+? WHERE id=?').run(o.amount, o.user);
     db.prepare("UPDATE orders SET status='approved', decided_at=? WHERE id=?").run(now(), o.id);
-    mesh.sendControl(o.user, { type: 'wallet_credited', amount: o.amount });
+    mesh.sendControl(o.user, { type: 'wallet_credited', orderId: o.id, amount: o.amount });
     return res.json({ ok: true });
   }
   const plan = tariffs.find(o.plan_id); if (!plan) return res.status(400).json({ error: 'offre inconnue' });
@@ -237,7 +237,8 @@ admin.post('/orders/:id/approve', (req, res) => {
   mesh.sendControl(o.user, { type: 'grant', orderId: o.id, token }); res.json({ ok: true });
 });
 admin.post('/orders/:id/refuse', (req, res) => { const o = db.prepare('SELECT * FROM orders WHERE id=?').get(req.params.id); if (!o || o.status !== 'awaiting') return res.status(400).json({ error: 'déjà traitée' });
-  db.prepare("UPDATE orders SET status='refused', decided_at=? WHERE id=?").run(now(), o.id); mesh.sendControl(o.user, { type: 'refused', orderId: o.id }); res.json({ ok: true }); });
+  db.prepare("UPDATE orders SET status='refused', decided_at=? WHERE id=?").run(now(), o.id);
+  mesh.sendControl(o.user, { type: o.plan_id === 'WALLET_RECHARGE' ? 'wallet_refused' : 'refused', orderId: o.id }); res.json({ ok: true }); });
 
 // ---- certifications ----
 admin.get('/certs', (req, res) => res.json({ requests: db.prepare(`SELECT c.id,c.user,c.level,c.status,c.reason,c.created_at,c.decided_at,u.nom,u.prenom,u.phone,u.country,u.city

@@ -29,9 +29,9 @@ function sendControl(userId, obj) { const u = getUser(userId); if (!u) return fa
 function ack(user, id) { queue(user.id, { i: uid(), ty: 'ack', s: ASSISTANT_ID, d: user.id, l: 8, t: Date.now(), sp: '', b: b64(id) }); }
 
 function parseOrder(user, text) {
-  const r = text.match(/^RECHARGE (\d+)/);
-  if (r) { const amt = +r[1]; if (amt > 0) db.prepare(`INSERT INTO orders(id,user,plan_id,plan_label,amount,reseller_name,status,created_at) VALUES(?,?,?,?,?,?, 'awaiting', ?)`)
-    .run('RCH-' + uid().slice(0, 8).toUpperCase(), user.id, 'WALLET_RECHARGE', 'Recharge portefeuille', amt, '', Date.now()); return; }
+  const r = text.match(/^RECHARGE (\d+) (RCH-[A-Z0-9]+)/);
+  if (r) { const amt = +r[1]; if (amt > 0) db.prepare(`INSERT OR IGNORE INTO orders(id,user,plan_id,plan_label,amount,reseller_name,status,created_at) VALUES(?,?,?,?,?,?, 'awaiting', ?)`)
+    .run(r[2], user.id, 'WALLET_RECHARGE', 'Recharge portefeuille', amt, '', Date.now()); return; }
   const m = text.match(/^COMMANDE (CMD-[A-Z0-9]+)/); if (!m) return;
   const plan = tariffs.find((text.match(/\[([a-z0-9]+)\]/) || [])[1]); if (!plan) return;
   const rn = (text.match(/Revendeur : (.*)/) || [])[1] || '';

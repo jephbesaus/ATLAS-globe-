@@ -85,6 +85,7 @@ object SingBoxCore {
         return try {
             s.tcpNoDelay = true; s.receiveBufferSize = 262144; s.sendBufferSize = 262144
             s.connect(InetSocketAddress("127.0.0.1", this.port), 3000)
+            s.soTimeout = 10000
             val o = s.getOutputStream(); val i = s.getInputStream()
             o.write(byteArrayOf(5, 1, 0)); o.flush()
             if (i.read() != 5 || i.read() != 0) throw IOException("socks")
