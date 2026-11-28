@@ -35,6 +35,7 @@ import com.atlasglobe.app.ui.theme.Atlas
 @Composable
 fun ChatListScreen(onOpen: (String) -> Unit, onContacts: () -> Unit, onNewGroup: () -> Unit) {
     val convs = ChatRepo.conversations()
+    val ctx = androidx.compose.ui.platform.LocalContext.current
     Column(Modifier.fillMaxSize().background(Atlas.Black).statusBarsPadding()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {

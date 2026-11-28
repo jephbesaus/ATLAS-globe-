@@ -154,13 +154,18 @@ object ResellerServer {
             if (u.expired()) { c.getOutputStream().write(2); return c.close() }
             val host = h.getString("h"); val port = h.getInt("p")
             if (!allowed(host, port)) { c.getOutputStream().write(3); return c.close() }
-            out = if (com.atlasglobe.app.connect.ConnectStore.relayAccepted && com.atlasglobe.app.connect.ConnectionManager.state == com.atlasglobe.app.connect.ConnectionManager.State.CONNECTED)
-                com.atlasglobe.app.connect.ConnectionManager.dial(host, port) { s2 -> runCatching { app.getSystemService(Context.CONNECTIVITY_SERVICE) } }
+            val relayCounter = AtomicLong(0)
+            val viaRelay = com.atlasglobe.app.connect.ConnectStore.relayAccepted && com.atlasglobe.app.connect.ConnectionManager.state == com.atlasglobe.app.connect.ConnectionManager.State.CONNECTED
+            val o: Socket = if (viaRelay) {
+                com.atlasglobe.app.connect.ConnectionManager.dial(host, port)
                     ?: run { c.getOutputStream().write(5); return c.close() }
-            else Socket().also { it.receiveBufferSize = 262144; it.sendBufferSize = 262144; it.connect(InetSocketAddress(host, port), 8000); it.tcpNoDelay = true }
+            } else {
+                Socket().also { it.receiveBufferSize = 262144; it.sendBufferSize = 262144; it.connect(InetSocketAddress(host, port), 8000); it.tcpNoDelay = true }
+            }
+            out = o
             c.getOutputStream().write(0); c.getOutputStream().flush(); c.soTimeout = 0
-            u.sockets.add(c); u.sockets.add(out); u.lastSeen = SystemClock.elapsedRealtime()
-            val a = out; val usage = u
+            u.sockets.add(c); u.sockets.add(o); u.lastSeen = SystemClock.elapsedRealtime()
+            val a: Socket = o; val usage = u
             val t = thread(isDaemon = true) { pipe(a.getInputStream(), c.getOutputStream(), usage, if (viaRelay) relayCounter else null) }
             pipe(c.getInputStream(), a.getOutputStream(), usage, if (viaRelay) relayCounter else null)
             t.join(2000)

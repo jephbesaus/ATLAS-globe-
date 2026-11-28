@@ -90,7 +90,7 @@ object ChatRepo {
     fun unread(conv: String) = msgs.count { it.conv == conv && it.from != myId() && it.from != "system" && it.status != "read" && !it.hidden }
 
     // ---------------- messages ----------------
-    fun send(conv: String, kind: String, text: String, media: String?, durMs: Long = 0, replyTo: String? = null) {
+    fun send(conv: String, kind: String, text: String, media: String? = null, durMs: Long = 0, replyTo: String? = null) {
         if (isGroup(conv)) { val g = group(conv) ?: return; if (!canWrite(g, myId())) return }
         var m = Msg(UUID.randomUUID().toString(), conv, myId(), kind, text, media, durMs, replyTo,
             System.currentTimeMillis(), "queued", false, false, emptyMap())
